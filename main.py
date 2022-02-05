@@ -90,3 +90,4 @@ async def query_handler(call: types.CallbackQuery) -> None:
 
 if __name__ == '__main__':
     asyncio.run(my_bot.infinity_polling(timeout=0))
+
