@@ -1,23 +1,19 @@
+from loader import my_bot
+from config_data import config
+from telebot.types import Message, InputMediaPhoto
+from typing import Dict, List, Tuple, Optional, Union, Set
+from classes.data_class import User
+import handlers.handlers_before_request.handlers as handlers
+from random import sample
 import requests
 import json
 import emoji
-import cmds_keyboard
 from re import search, findall
-import handlers
-from loader import my_bot
-from classes import User
-from loader import os
-from telebot import types
-from dotenv import load_dotenv
-from typing import Dict, List, Tuple, Optional, Union, Set, Any
-from random import sample
-from urllib.request import urlopen
-
-load_dotenv(dotenv_path='.env')
+import keyboards.inline.inline_keyboards as inline
 
 
-def locations(message: types.Message) -> Tuple[Dict[str, Optional[str]],
-                                               Dict[str, str], str]:
+def locations(message: Message) -> Tuple[Dict[str, Optional[str]],
+                                         Dict[str, str], str]:
     """Contains url, headers and query string for locations/v2/search API Hotels.com
 
     :param message: argument
@@ -29,7 +25,7 @@ def locations(message: types.Message) -> Tuple[Dict[str, Optional[str]],
     current_user = User.get_user(message.chat.id)
     headers: dict[str: str] = {
         "x-rapidapi-host": "hotels4.p.rapidapi.com",
-        "x-rapidapi-key": os.getenv('API_TOKEN')
+        "x-rapidapi-key": config.RAPID_API_KEY
     }
     url: str = "https://hotels4.p.rapidapi.com/locations/v2/search"
     querystring: dict[str: str] = {
@@ -40,8 +36,8 @@ def locations(message: types.Message) -> Tuple[Dict[str, Optional[str]],
     return headers, querystring, url
 
 
-def properties(message: types.Message) -> Tuple[Dict[str, Optional[str]],
-                                                Dict[str, str], str]:
+def properties(message: Message) -> Tuple[Dict[str, Optional[str]],
+                                          Dict[str, str], str]:
     """Contains url, headers and query string for properties/list API Hotels.com
 
     :param message: argument
@@ -53,7 +49,7 @@ def properties(message: types.Message) -> Tuple[Dict[str, Optional[str]],
     current_user = User.get_user(message.chat.id)
     headers: dict[str: str] = {
         "x-rapidapi-host": "hotels4.p.rapidapi.com",
-        "x-rapidapi-key": os.getenv('API_TOKEN')
+        "x-rapidapi-key": config.RAPID_API_KEY
     }
     url: str = "https://hotels4.p.rapidapi.com/properties/list"
     querystring = {
@@ -66,8 +62,8 @@ def properties(message: types.Message) -> Tuple[Dict[str, Optional[str]],
     return headers, querystring, url
 
 
-def photo_viewing(message: types.Message) -> Tuple[Dict[str, Optional[str]],
-                                                   Dict[str, str], str]:
+def photo_viewing(message: Message) -> Tuple[Dict[str, Optional[str]],
+                                             Dict[str, str], str]:
     """Contains url, headers and query string for properties/get-hotel-photos
     API Hotels.com
 
@@ -80,15 +76,15 @@ def photo_viewing(message: types.Message) -> Tuple[Dict[str, Optional[str]],
     current_user = User.get_user(message.chat.id)
     headers: dict[str: str] = {
         "x-rapidapi-host": "hotels4.p.rapidapi.com",
-        "x-rapidapi-key": os.getenv('API_TOKEN')
+        "x-rapidapi-key": config.RAPID_API_KEY
     }
     url = "https://hotels4.p.rapidapi.com/properties/get-hotel-photos"
     querystring = {"id": current_user.hotel_id}
     return headers, querystring, url
 
 
-def function_selection(message: types.Message) -> Tuple[Dict[str, Optional[str]],
-                                                        Dict[str, str], str]:
+def function_selection(message: Message) -> Tuple[Dict[str, Optional[str]],
+                                                  Dict[str, str], str]:
     """Depending on the current state of the bot, it calls the corresponding
     function that returns the url, headers, query string
 
@@ -108,12 +104,12 @@ def function_selection(message: types.Message) -> Tuple[Dict[str, Optional[str]]
         return photo_viewing(message)
 
 
-def create_request(message: types.Message) -> requests.Response:
+def create_request(message: Message) -> requests.Response:
     """Accepts the url, headers, and query string from ''function_selection''
      and depending on the current state of the bot, it sends the
     request to the API (hotels locations, properties, photo) and returns the response
     object. If an exception occurred, a message is displayed, reconnection is
-    performed automatically
+    performed automatically, the previous emoji is being deleted
 
     :param message: argument
     :type message: Message object
@@ -140,7 +136,7 @@ def create_request(message: types.Message) -> requests.Response:
                                     text='*Сейчас я не могу помочь вам.*'
                                          '* Попробуйте еще раз немного позже*',
                                     parse_mode='Markdown')
-                handlers.delete_prev_message(message)
+                handlers.delete_previous_message(message)
     except requests.exceptions.Timeout:
         my_bot.send_message(chat_id=message.chat.id,
                             text='*Кажется появились какие-то проблемы*'
@@ -153,10 +149,10 @@ def create_request(message: types.Message) -> requests.Response:
                                 text='*Сервер слишком долго не отвечает*'
                                      '*попробуйте воспользоваться мной немного позже*',
                                 parse_mode='Markdown')
-            handlers.delete_prev_message(message)
+            handlers.delete_previous_message(message)
 
 
-def request_to_api(message: types.Message) -> bool:
+def request_to_api(message: Message) -> bool:
     """Gets a response object (from create_request func), performs deserialization
     of json file and writes it down in the corresponding dynamic attribute of the
     User class (current_buffer or photo_buffer). In zero state -  calls the  function
@@ -200,7 +196,7 @@ def request_to_api(message: types.Message) -> bool:
     return True
 
 
-def processing_cities(message: types.Message) -> None:
+def processing_cities(message: Message) -> None:
     """Interacts with deserialized json file from the corresponding dynamic
     buffer attribute of the User class, processes it and writes a list with
     the name of cities and destination_id of them, to the same field of the User data
@@ -218,14 +214,18 @@ def processing_cities(message: types.Message) -> None:
         result = findall(r'[аА-яЯёЁ]+', i_elem["caption"])
         cities.append({' '.join(result): i_elem["destinationId"]})
     current_user.current_buffer = cities
-    cmds_keyboard.cities_keyboard(message)
+    inline.cities_keyboard(message)
 
 
-def result_displaying(message: types.Message) -> None:
-    """Displays the found hotels with or without photos. If fewer hotels are found
-    than the user selected, a message is displayed. After displaying the found
-    number of hotels, an inline keyboard is displayed, offering to continue
-    the search with the same parameters, start a new search or stop the search.
+def result_displaying(message: Message) -> None:
+    """Depending on the current number of hotels, displays the found hotels with
+    or without photos (using a special function that takes a list of hotels and
+    the index of the current hotel as arguments). If fewer hotels are found than
+    the user selected, a message is displayed. After displaying the found number
+    of hotels, an inline keyboard is displayed, offering to continue the search
+    with the same parameters (if possible), start a new search or stop the search (two
+    different inline keyboards, depending on the availability or absence of hotels
+    corresponding to the initially set parameters).
 
     :param message: argument
     :type message: Message object
@@ -236,7 +236,7 @@ def result_displaying(message: types.Message) -> None:
     if len(hotels) >= current_user.hotels_count:
         for index in range(current_user.hotels_count):
             check_hotels_count(message, hotels=hotels, index=index)
-        cmds_keyboard.show_more_hotels_part_1(message)
+        inline.show_more_hotels_part_1(message)
     else:
         for index in range(len(hotels)):
             check_hotels_count(message, hotels=hotels, index=index)
@@ -244,15 +244,15 @@ def result_displaying(message: types.Message) -> None:
                             text='*К сожалению мне удалось найти немного*'
                                  '* меньше отелей(*',
                             parse_mode='Markdown')
-        cmds_keyboard.show_more_hotels_part_2(message)
+        inline.show_more_hotels_part_2(message)
 
 
-def check_hotels_count(message: types.Message,
+def check_hotels_count(message: Message,
                        hotels: List[Union[Dict]], index: int) -> None:
     """Sets the value of the hotel id and its index in the list of hotels,
     calls the function of checking the availability of the cost of accommodation
-     in hotels and, depending on the desire to view photos, either calls the
-     corresponding photo display function, or displays hotels without photos
+    in hotels and, depending on the desire to view photos, either calls the
+    corresponding photo display function, or displays hotels without photos
 
     :param index: index of hotel from list of them
     :type: index: integer
@@ -271,11 +271,30 @@ def check_hotels_count(message: types.Message,
     else:
         my_bot.send_message(chat_id=message.chat.id,
                             text=create_text_message(message),
-                            reply_markup=cmds_keyboard.visit_the_website(message),
+                            reply_markup=inline.visit_the_website(message),
                             parse_mode='Markdown')
 
 
-def create_text_message(message: types.Message) -> str:
+def price_checker(message: Message,
+                  hotels: List[Union[Dict]], index: int) -> None:
+    """Checks if the hotel has a cost and sets the corresponding flag to True,
+     if available
+
+     :param: message: argument
+    :type: message: Message object
+    :param: hotels: list of hotels
+    :type: hotels: list of dictionaries
+    :param: index: index of hotel from list of them
+    :type: index: integer"""
+
+    current_user = User.get_user(message.chat.id)
+    if hotels[index].get("ratePlan"):
+        current_user.without_price = False
+    else:
+        current_user.without_price = True
+
+
+def create_text_message(message: Message) -> str:
     """Creates and returns a text message with a description of each hotel
 
     :param message: argument
@@ -299,7 +318,7 @@ def create_text_message(message: types.Message) -> str:
                          f'{hotels[index]["address"].get("streetAddress", ":house_with_garden:")}'
                          f'{hotels[index]["address"].get("extendedAddress", ":house_with_garden:")}\n'
                          ':bar_chart: Общий рейтинг отеля: '
-                         f'{hotels[index]["starRating"]}\n'
+                         f'{hotels[index].get("starRating", ":smiling_face:")}\n'
                          f':chart_increasing: Рейтинг посетителей: '
                          f'{find_key(hotels[index], "guestReviews", "rating")}\n'
                          f':microscope: Оценка посетителей: '
@@ -313,8 +332,8 @@ def create_text_message(message: types.Message) -> str:
                          f' RUB\n')
 
 
-def find_key(some_dict: Dict, first_key: str, second_key: str) -> str:
-    """It is used to search for values (the user rating of the hotel and its user rating)
+def find_key(some_dictionary: Dict, first_key: str, second_key: str) -> str:
+    """It is used to search for values (the user rating of the hotel and its user review)
     in the hotel dictionary by the corresponding keys. Emogi is returned
     if the key passed to the function does not exist  or the value is returned by
     the dictionary key, if it exists
@@ -328,16 +347,16 @@ def find_key(some_dict: Dict, first_key: str, second_key: str) -> str:
     :return: hotel rating or question emoji sign
     :rtype: string"""
 
-    if some_dict.get(first_key):
-        if some_dict[first_key].get(second_key):
-            return some_dict[first_key][second_key]
+    if some_dictionary.get(first_key):
+        if some_dictionary[first_key].get(second_key):
+            return some_dictionary[first_key][second_key]
         else:
             return ":red_question_mark:"
     else:
         return ":red_question_mark:"
 
 
-def find_next_key(some_dict: Dict, first_key: str,
+def find_next_key(some_dictionary: Dict, first_key: str,
                   second_key: str, third_key: str) -> str:
     """It is used to search for values (hotel price) in the hotel dictionary by
     the corresponding keys. Emogi is returned if the key passed to the function
@@ -354,17 +373,17 @@ def find_next_key(some_dict: Dict, first_key: str,
     :return: hotel price or question emoji sign
     :rtype: string"""
 
-    if some_dict.get(first_key):
-        if some_dict[first_key].get(second_key):
-            if some_dict[first_key][second_key].get(third_key):
-                return some_dict[first_key][second_key][third_key]
+    if some_dictionary.get(first_key):
+        if some_dictionary[first_key].get(second_key):
+            if some_dictionary[first_key][second_key].get(third_key):
+                return some_dictionary[first_key][second_key][third_key]
         else:
             return ":red_question_mark:"
     else:
         return ":red_question_mark:"
 
 
-def price_do_not_exist(message: types.Message,
+def price_do_not_exist(message: Message,
                        duration: List[int]) -> Union[str, int]:
     """Returns emoji question sign if the hotel has no cost or returns the cost
     for the duration of the stay at the hotel
@@ -388,7 +407,7 @@ def price_do_not_exist(message: types.Message,
         )
 
 
-def delete_showed_hotels(message: types.Message) -> None:
+def delete_showed_hotels(message: Message) -> None:
     """Deletes the number of hotels entered by the user from current_buffer,
     after they are displayed. If the list of hotels is empty, a keyboard is displayed
     with a suggestion to start a new search or finish the one you started
@@ -404,29 +423,10 @@ def delete_showed_hotels(message: types.Message) -> None:
             hotels.remove(hotels[index])
         result_displaying(message)
     except IndexError:
-        cmds_keyboard.show_more_hotels_part_2(message)
+        inline.show_more_hotels_part_2(message)
 
 
-def price_checker(message: types.Message,
-                  hotels: List[Union[Dict]], index: int) -> None:
-    """Checks if the hotel has a cost and sets the corresponding flag to True,
-     if available
-
-     :param: message: argument
-    :type: message: Message object
-    :param: hotels: list of hotels
-    :type: hotels: list of dictionaries
-    :param: index: index of hotel from list of them
-    :type: index: integer"""
-
-    current_user = User.get_user(message.chat.id)
-    if hotels[index].get("ratePlan"):
-        current_user.without_price = False
-    else:
-        current_user.without_price = True
-
-
-def selected_command(message: types.Message) -> None:
+def selected_command(message: Message) -> None:
     """Depending on the command entered by the user, it calls
     the corresponding function
 
@@ -443,12 +443,13 @@ def selected_command(message: types.Message) -> None:
         best_deal(message)
 
 
-def low_price(message: types.Message) -> None:
+def low_price(message: Message) -> None:
     """Accepts lists of dictionaries of hotels containing their cost and without it.
-    If the list of hotels with a price is not empty, it sorts it in ascending order
-    of price and adds hotels without a price from another list to the end.
+    If the list of hotels with a price is not empty, it sorts it in ascending
+    order of price and adds hotels without a price from another list to the end.
     If initially the list of hotels with a price is empty, then further work is carried
-    out only with hotels without a price from the corresponding folder.
+    out only with hotels without a price from the corresponding folder (in the case
+    when a city is selected in which there are only hotels without a price, like Gagra).
     The dynamic attribute of the user class is overwritten at the end
 
     :param message: argument
@@ -458,20 +459,21 @@ def low_price(message: types.Message) -> None:
     current_user = User.get_user(message.chat.id)
     hotels_with_price, hotels_without_price = comparison_of_hotels(message)
     if len(hotels_with_price) > 0:
-        sorted(hotels_with_price,
-               key=lambda x: x["ratePlan"]["price"]["exactCurrent"])
-        hotels_with_price.extend(hotels_without_price)
-        current_user.current_buffer = hotels_with_price
+        sorted_list: List = sorted(hotels_with_price,
+                                   key=lambda x: x["ratePlan"]["price"]["exactCurrent"])
+        sorted_list.extend(hotels_without_price)
+        current_user.current_buffer = sorted_list
     else:
         current_user.current_buffer = hotels_without_price
 
 
-def high_price(message: types.Message) -> None:
+def high_price(message: Message) -> None:
     """Accepts lists of dictionaries of hotels containing their cost and without it.
-    If the list of hotels with a price is not empty, it sorts it in descending order
-    of price and adds hotels without a price from another list to the end.
+    If the list of hotels with a price is not empty, it sorts it in descending
+    order of price and adds hotels without a price from another list to the end.
     If initially the list of hotels with a price is empty, then further work is carried
-    out only with hotels without a price from the corresponding folder.
+    out only with hotels without a price from the corresponding folder (in the case
+    when a city is selected in which there are only hotels without a price, like Gagra).
     The dynamic attribute of the user class is overwritten at the end
 
     :param message: argument
@@ -481,22 +483,24 @@ def high_price(message: types.Message) -> None:
     current_user = User.get_user(message.chat.id)
     hotels_with_price, hotels_without_price = comparison_of_hotels(message)
     if len(hotels_with_price) > 0:
-        sorted(hotels_with_price,
-               key=lambda x: x["ratePlan"]["price"]["exactCurrent"], reverse=True)
-        hotels_with_price.extend(hotels_without_price)
-        current_user.current_buffer = hotels_with_price
+        sorted_list: List = sorted(hotels_with_price,
+                                   key=lambda x: x["ratePlan"]["price"]["exactCurrent"],
+                                   reverse=True)
+        sorted_list.extend(hotels_without_price)
+        current_user.current_buffer = sorted_list
     else:
         current_user.current_buffer = hotels_without_price
 
 
-def best_deal(message: types.Message) -> None:
+def best_deal(message: Message) -> None:
     """Accepts lists of dictionaries of hotels with and without their cost.
     If the list of hotels with a price is not empty, then hotels are added from
     it to another list, taking into account the price range and distance from
     the city center set earlier. Next, sorting carried out by distance from the
     city center. If initially the list of hotels with a price is empty, then further
-    work is carried out only with hotels without a price from the corresponding folder.
-    The dynamic attribute of the user class is overwritten at the end
+    work is carried out only with hotels without a price from the corresponding folder
+    (in the case when a city is selected in which there are only hotels without a price,
+    like Gagra). The dynamic attribute of the user class is overwritten at the end
 
     :param message: argument
     :type message: Message object
@@ -506,21 +510,35 @@ def best_deal(message: types.Message) -> None:
     hotels_with_price, hotels_without_price = comparison_of_hotels(message)
     final_hotels_list: List = list()
     if len(hotels_with_price) > 0:
-        for i_elem in hotels_with_price:
-            if current_user.max_price >= i_elem["ratePlan"]["price"]["exactCurrent"] >= (
-                    current_user.min_price) and current_user.max_distance >= (
-                    int([i_sym for i_sym in i_elem["landmarks"][0][
-                        "distance"] if i_sym.isdigit()][0])) >= (
-                    current_user.min_distance):
-                final_hotels_list.append(i_elem)
-        sorted(final_hotels_list, key=lambda x: (x["landmarks"][0]["distance"]))
-        final_hotels_list.extend(hotels_without_price)
-        current_user.current_buffer = hotels_with_price
+        for i_element in hotels_with_price:
+            current_price = i_element["ratePlan"]["price"]["exactCurrent"]
+            initial_remoteness: str = ''.join([i_symbol for i_symbol in i_element[
+                "landmarks"][0]["distance"]
+                                               if i_symbol.isdigit()
+                                               or i_symbol == ','])
+            if ',' not in initial_remoteness:
+                remoteness = int(initial_remoteness)
+            else:
+                remoteness = float(initial_remoteness.replace(',', '.'))
+
+            if current_user.maximum_price >= current_price >= (
+                    current_user.minimum_price) and (
+                    current_user.maximum_distance) >= remoteness >= (
+                    current_user.minimum_distance):
+                i_element["landmarks"][0]["distance"] = remoteness
+                final_hotels_list.append(i_element)
+        sorted_list: List = sorted(final_hotels_list, key=lambda x: x[
+            "landmarks"][0]["distance"])
+        for index in range(len(sorted_list)):
+            sorted_list[index]["landmarks"][0]["distance"] = str(
+                sorted_list[index]["landmarks"][0]["distance"]) + ' км'
+        sorted_list.extend(hotels_without_price)
+        current_user.current_buffer = sorted_list
     else:
         current_user.current_buffer = hotels_without_price
 
 
-def comparison_of_hotels(message: types.Message) -> Tuple[list, list]:
+def comparison_of_hotels(message: Message) -> Tuple[list, list]:
     """Adds hotels to one list with the availability of the cost of living, and to another
          without it, and returns both of them
 
@@ -533,14 +551,15 @@ def comparison_of_hotels(message: types.Message) -> Tuple[list, list]:
     hotels_list_with: List = list()
     hotels_list_without: List = list()
     for i_hotel in current_user.current_buffer["results"]:
-        if not i_hotel.get("ratePlan") is None:
-            hotels_list_with.append(i_hotel)
-        else:
-            hotels_list_without.append(i_hotel)
+        if len(i_hotel["landmarks"]) > 0:
+            if not i_hotel.get("ratePlan") is None:
+                hotels_list_with.append(i_hotel)
+            else:
+                hotels_list_without.append(i_hotel)
     return hotels_list_with, hotels_list_without
 
 
-def photo_selection(message: types.Message) -> None:
+def photo_selection(message: Message) -> None:
     """Retrieves the urls of all photos for each hotel from photo_buffer,
      replaces the string with the substitution of the corresponding photo
      size and adds it to the dictionary of all hotel photos. At the end, a
@@ -569,31 +588,7 @@ def photo_selection(message: types.Message) -> None:
         pass
 
 
-def create_media_group(message: types.Message, photo: List[Union[str]]) -> None:
-    """Displays a message with a media group and at the end displays another
-     message with an inline button (hotel website)
-
-     :param photo: list with hotel urls
-     :type photo: list with strings
-     :param message: argument
-    :type message: Message object
-    :return: None"""
-
-    my_bot.send_media_group(message.chat.id,
-                            [types.InputMediaPhoto(urlopen(url),
-                                                   caption=create_text_message(message))
-                             if photo.index(url) == 0
-                             else types.InputMediaPhoto(urlopen(url))
-                             for url in photo])
-    my_bot.send_message(chat_id=message.chat.id,
-                        text=emoji.emojize(
-                            '*Для просмотра дополнительных опций и фотографий *'
-                            '* посетите  :backhand_index_pointing_down:*'),
-                        reply_markup=cmds_keyboard.visit_the_website(message),
-                        parse_mode='Markdown')
-
-
-def create_final_photo_list(message: types.Message) -> None:
+def create_final_photo_list(message: Message) -> None:
     """Retrieves the required number of non-repeating urls from the
     dictionary with all the photos for each hotel. If there are not so many urls
     that the user needs, all available ones are added. Calls the function that
@@ -605,16 +600,66 @@ def create_final_photo_list(message: types.Message) -> None:
 
     current_user = User.get_user(message.chat.id)
     try:
-        final_photo: List[Union[str]] = sample(current_user.hotels_photos[
-                                                   current_user.hotel_id],
-                                               current_user.photo_count)
+        final_photo: List[Union[str]] = check_urls(message=message,
+                                                   photo_count=current_user.photo_count)
         create_media_group(message, final_photo)
     except ValueError:
         my_bot.send_message(chat_id=message.chat.id,
                             text='*У следующего отеля будет  меньше фото,*'
                                  '* чем вы хотели*', parse_mode='Markdown')
-        final_photo: List[Union[str]] = sample(
-            current_user.hotels_photos[current_user.hotel_id], len(
-                current_user.hotels_photos[current_user.hotel_id])
+        final_photo: List[Union[str]] = check_urls(
+            message=message,
+            photo_count=len(
+                current_user.hotels_photos[
+                    current_user.hotel_id])
         )
         create_media_group(message, final_photo)
+
+
+def check_urls(message: Message, photo_count: int) -> List[Union[str]]:
+    """Selects a specified number of active urls from dictionaries with photos
+    of each hotel. If at least one url does not work, the selection process is
+    repeated
+
+    :param message: argument
+    :type message: Message object
+    :param photo_count: count of urls
+    :type photo_count: integer
+    :return: the specified number of hotel urls
+    :rtype: list with strings"""
+
+    current_user = User.get_user(message.chat.id)
+    while True:
+        urls_list: List[Union[str]] = sample(current_user.hotels_photos[
+                                                 current_user.hotel_id],
+                                             photo_count)
+        if all([requests.get(url).status_code == 200 for url in urls_list]):
+            return urls_list
+
+
+def create_media_group(message: Message, photo: List[Union[str]]) -> None:
+    """Displays a message with a media group and at the end displays another
+     message with an inline button (hotel website)
+
+    :param photo: list with hotel urls
+    :type photo: list with strings
+    :param message: argument
+    :type message: Message object
+    :return: None"""
+
+    try:
+        my_bot.send_media_group(message.chat.id,
+                                [InputMediaPhoto(url,
+                                                 caption=create_text_message(message))
+                                 if photo.index(url) == 0
+                                 else InputMediaPhoto(url)
+                                 for url in photo])
+        my_bot.send_message(chat_id=message.chat.id,
+                            text=emoji.emojize(
+                                '*Для просмотра дополнительных опций и фотографий *'
+                                '* посетите  :backhand_index_pointing_down:*'),
+                            reply_markup=inline.visit_the_website(message),
+                            parse_mode='Markdown')
+    except Exception:
+        pass
+

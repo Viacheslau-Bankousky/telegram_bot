@@ -1,12 +1,12 @@
-from telebot import types
+from telebot.types import Message, InlineKeyboardMarkup, InlineKeyboardButton
 import emoji
+from classes.data_class import User
+from classes.calendar import MyTranslationCalendar
 from loader import my_bot
-from classes import User
-from classes import MyTranslationCalendar
-import handlers
+import handlers.handlers_before_request.handlers as handlers
 
 
-def commands_keyboard(message: types.Message) -> None:
+def commands_keyboard(message: Message) -> None:
     """Inline keyboard with options for the main most used
     commands (the /hello-world command is not displayed specifically,
     in view of its remoteness from the main logic of the bot; command
@@ -22,17 +22,17 @@ def commands_keyboard(message: types.Message) -> None:
     :return: None"""
 
     current_user = User.get_user(message.chat.id)
-    keyboard = types.InlineKeyboardMarkup().add(
-        types.InlineKeyboardButton(
+    keyboard = InlineKeyboardMarkup().add(
+        InlineKeyboardButton(
             text=emoji.emojize('LOWPRICE  :money-mouth_face:'),
             callback_data='/lowprice'),
-        types.InlineKeyboardButton(
+        InlineKeyboardButton(
             text=emoji.emojize('HIGHPRICE  :zany_face:'),
             callback_data='/highprice'),
-        types.InlineKeyboardButton(
+        InlineKeyboardButton(
             text=emoji.emojize('BESTDEAL   :partying_face:'),
             callback_data='/bestdeal'),
-        types.InlineKeyboardButton(
+        InlineKeyboardButton(
             text=emoji.emojize('HISTORY   :brain:'),
             callback_data='/history')
     )
@@ -46,13 +46,13 @@ def commands_keyboard(message: types.Message) -> None:
         reply_markup=keyboard, parse_mode='Markdown'
     )
 
-    handlers.delete_prev_message(message)
+    handlers.delete_previous_message(message)
     current_user.clear_all()
     current_user.id_message_for_delete = result.message_id
     current_user.delete_message = True
 
 
-def yes_no_keyboard(message: types.Message) -> None:
+def yes_no_keyboard(message: Message) -> None:
     """Inline keyboard with answers a question about view photo of hotels.
     The id of the message with the on-screen
     keyboard is recorded in a special field of the User class (also the flag field
@@ -63,11 +63,11 @@ def yes_no_keyboard(message: types.Message) -> None:
     :return: None"""
 
     current_user = User.get_user(message.chat.id)
-    keyboard = types.InlineKeyboardMarkup().add(
-        types.InlineKeyboardButton(
+    keyboard = InlineKeyboardMarkup().add(
+        InlineKeyboardButton(
             text=emoji.emojize('ДА   :thumbs_up:'),
             callback_data='ДА'),
-        types.InlineKeyboardButton(
+        InlineKeyboardButton(
             text=emoji.emojize('НЕТ   :thumbs_down:'),
             callback_data='НЕТ')
     )
@@ -81,20 +81,7 @@ def yes_no_keyboard(message: types.Message) -> None:
     current_user.delete_message = True
 
 
-def menu_button() -> types.ReplyKeyboardMarkup:
-    """Create menu button and return it
-
-    :rtype: ReplyKeyboardMarkup"""
-
-    keyboard = types.ReplyKeyboardMarkup(one_time_keyboard=False,
-                                         resize_keyboard=True)
-    keyboard.add(types.KeyboardButton(
-        emoji.emojize('Меню   :desert_island:'))
-    )
-    return keyboard
-
-
-def date_selection(message: types.Message) -> None:
+def date_selection(message: Message) -> None:
     """Сreates a calendar for entering the check-in and
     check-out dates from the hotel. The id of the message with the on-screen
     keyboard is recorded in a special field of the User class (also the flag field
@@ -114,7 +101,7 @@ def date_selection(message: types.Message) -> None:
     current_user.delete_message = True
 
 
-def cities_keyboard(message: types.Message) -> None:
+def cities_keyboard(message: Message) -> None:
     """Keyboard with the found  cities (state 1).
     The id of the message with the inline keyboard is recorded in a special field
     of the User class (also the flags field is activated): 1 - for its further deletion
@@ -127,10 +114,10 @@ def cities_keyboard(message: types.Message) -> None:
 
     current_user = User.get_user(message.chat.id)
 
-    keyboard = types.InlineKeyboardMarkup()
-    for i_elem in current_user.current_buffer:
-        for key, value in i_elem.items():
-            keyboard.add(types.InlineKeyboardButton(text=key, callback_data=value))
+    keyboard = InlineKeyboardMarkup()
+    for i_element in current_user.current_buffer:
+        for key, value in i_element.items():
+            keyboard.add(InlineKeyboardButton(text=key, callback_data=value))
 
     result = my_bot.send_message(chat_id=message.chat.id,
                                  text='*Вот, что я нашел)*', reply_markup=keyboard,
@@ -141,7 +128,7 @@ def cities_keyboard(message: types.Message) -> None:
     current_user.first_condition = True
 
 
-def visit_the_website(message: types.Message) -> types.InlineKeyboardMarkup:
+def visit_the_website(message: Message) -> InlineKeyboardMarkup:
     """Creates a keyboard with a single button that opens the hotel's website
 
     :param message: argument
@@ -150,15 +137,15 @@ def visit_the_website(message: types.Message) -> types.InlineKeyboardMarkup:
     :rtype: types.InlineKeyboardMarkup"""
 
     current_user = User.get_user(message.chat.id)
-    button = types.InlineKeyboardButton(
+    button = InlineKeyboardButton(
         text='Сайт отеля',
         url=f'https://ru.hotels.com/ho{current_user.hotel_id}'
     )
-    keyboard = types.InlineKeyboardMarkup().add(button)
+    keyboard = InlineKeyboardMarkup().add(button)
     return keyboard
 
 
-def show_more_hotels_part_1(message: types.Message) -> None:
+def show_more_hotels_part_1(message: Message) -> None:
     """After the first display of the specified number of hotels, it offers to load
     more hotels with the same parameters, start a new search or stop the search.
     The id of the inline keyboard is recorded for later deletion. The current state
@@ -171,14 +158,14 @@ def show_more_hotels_part_1(message: types.Message) -> None:
     :return: None"""
 
     current_user = User.get_user(message.chat.id)
-    keyboard = types.InlineKeyboardMarkup().add(
-        types.InlineKeyboardButton(
+    keyboard = InlineKeyboardMarkup().add(
+        InlineKeyboardButton(
             text=emoji.emojize('Еще отели   :grinning_face_with_big_eyes:'),
             callback_data='Загрузить еще отели'),
-        types.InlineKeyboardButton(
+        InlineKeyboardButton(
             text=emoji.emojize('Новый поиск   :star-struck:'),
             callback_data='Новый поиск'),
-        types.InlineKeyboardButton(
+        InlineKeyboardButton(
             text=emoji.emojize('Закончить   :face_with_spiral_eyes:'),
             callback_data='Закончить поиск')
     )
@@ -196,7 +183,7 @@ def show_more_hotels_part_1(message: types.Message) -> None:
     current_user.start_from_the_beginning_part_1 = True
 
 
-def show_more_hotels_part_2(message: types.Message) -> None:
+def show_more_hotels_part_2(message: Message) -> None:
     """Suggests starting a new search or ending the search when there
     are no more hotels by the specified parameter. The id of the inline keyboard
     is recorded for later deletion. The flag is activated for the correct display
@@ -208,11 +195,11 @@ def show_more_hotels_part_2(message: types.Message) -> None:
     :return: None"""
 
     current_user = User.get_user(message.chat.id)
-    keyboard = types.InlineKeyboardMarkup().add(
-        types.InlineKeyboardButton(
+    keyboard = InlineKeyboardMarkup().add(
+        InlineKeyboardButton(
             text=emoji.emojize('Новый поиск   :star-struck:'),
             callback_data='Новый поиск'),
-        types.InlineKeyboardButton(
+        InlineKeyboardButton(
             text=emoji.emojize('Закончить поиск   :face_with_spiral_eyes:'),
             callback_data='Закончить поиск')
     )

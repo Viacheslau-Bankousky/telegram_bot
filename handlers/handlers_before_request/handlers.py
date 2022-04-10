@@ -1,15 +1,15 @@
-import rapidapi
-from main import command_low_price, command_high_price, cmd_best_deal
-from main import say_hello_world, help_me, command_history
+from telebot.types import Message
 from loader import my_bot
-from classes import User
+from classes.data_class import User
+import keyboards.inline.inline_keyboards as inline
+from handlers.handlers_for_request_and_after.rapidapi import (
+    result_displaying, request_to_api, photo_selection)
+import handlers.default_handlers.handlers as commands
 from datetime import date
-from telebot import types
-from rapidapi import request_to_api
-import cmds_keyboard
+import emoji
 
 
-def initial_func(message: types.Message) -> None:
+def initial_function(message: Message) -> None:
     """""The initial handler of the user's message, offering
     to select the city in which the hotel will be searched, writes the name of next 
     function in the corresponding field of the data class directing
@@ -24,11 +24,11 @@ def initial_func(message: types.Message) -> None:
     result = my_bot.send_message(chat_id=message.chat.id,
                                  text='*Теперь выберите город, для поиска отеля  *',
                                  parse_mode='Markdown')
-    current_user.next_func = determ_city
+    current_user.next_function = determination_city
     my_bot.register_next_step_handler(result, check_message)
 
 
-def determ_city(message: types.Message) -> None:
+def determination_city(message: Message) -> None:
     """The handler that interacts with the entered
     a message (the selected city) and offers to re-enter if its format
     specified incorrectly; if the message format is specified correctly
@@ -52,7 +52,7 @@ def determ_city(message: types.Message) -> None:
         my_bot.register_next_step_handler(result, check_message)
 
 
-def differance_between_commands(message: types.Message) -> None:
+def differance_between_commands(message: Message) -> None:
     """Depending on the initial commands,
     it offers to choose either the desired number of hotels
     (when entering lowprice and highprice), or the minimum cost
@@ -72,18 +72,18 @@ def differance_between_commands(message: types.Message) -> None:
         result = my_bot.send_message(chat_id=message.chat.id,
                                      text='*А сейчас выберите количество отелей*',
                                      parse_mode='Markdown')
-        current_user.next_func = hotels_count
+        current_user.next_function = hotels_count
         my_bot.register_next_step_handler(result, check_message)
     else:
         result = my_bot.send_message(chat_id=message.chat.id,
                                      text='*Введите минимальную цену*'
                                           '* за сутки в отеле*',
                                      parse_mode='Markdown')
-        current_user.next_func = min_price
+        current_user.next_function = minimum_price
         my_bot.register_next_step_handler(result, check_message)
 
 
-def min_price(message: types.Message) -> None:
+def minimum_price(message: Message) -> None:
     """The handler that interacts with the entered
     the message (the minimum cost of the hotel) and offers to re-enter,
     if its format is specified incorrectly. If the correct message is entered,
@@ -99,12 +99,12 @@ def min_price(message: types.Message) -> None:
 
     if message.text.isdigit():
         if int(message.text) > 0:
-            current_user.min_price = int(message.text)
+            current_user.minimum_price = int(message.text)
             result = my_bot.send_message(chat_id=message.chat.id,
                                          text='*Введите максимальную цену*'
                                               '* за сутки проживания в отеле*',
                                          parse_mode='Markdown')
-            current_user.next_func = max_price
+            current_user.next_function = maximum_price
             my_bot.register_next_step_handler(result, check_message)
         else:
             result = my_bot.send_message(chat_id=message.chat.id,
@@ -119,7 +119,7 @@ def min_price(message: types.Message) -> None:
         my_bot.register_next_step_handler(result, check_message)
 
 
-def max_price(message: types.Message) -> None:
+def maximum_price(message: Message) -> None:
     """The handler that interacts with the entered
     a message (the maximum cost of the hotel) and offers to re-enter,
     if its format is specified incorrectly. If the correct message is entered,
@@ -134,13 +134,13 @@ def max_price(message: types.Message) -> None:
     current_user = User.get_user(message.chat.id)
 
     if message.text.isdigit():
-        if 0 < int(message.text) > current_user.min_price:
-            current_user.max_price = int(message.text)
+        if 0 < int(message.text) > current_user.minimum_price:
+            current_user.maximum_price = int(message.text)
             result = my_bot.send_message(chat_id=message.chat.id,
                                          text='*Введите минимальное расстояние *'
                                               '*от отеля до центра города (в км)*',
                                          parse_mode='Markdown')
-            current_user.next_func = min_distance
+            current_user.next_function = minimum_distance
             my_bot.register_next_step_handler(result, check_message)
         else:
             result = my_bot.send_message(chat_id=message.chat.id,
@@ -156,7 +156,7 @@ def max_price(message: types.Message) -> None:
         my_bot.register_next_step_handler(result, check_message)
 
 
-def min_distance(message: types.Message) -> None:
+def minimum_distance(message: Message) -> None:
     """The handler that interacts with the entered
     a message (the minimum distance of the hotel from the city center) and
     offers to re-enter if its format is specified incorrectly.
@@ -173,12 +173,12 @@ def min_distance(message: types.Message) -> None:
 
     if message.text.isdigit():
         if int(message.text) > 0:
-            current_user.min_distance = int(message.text)
+            current_user.minimum_distance = int(message.text)
             result = my_bot.send_message(chat_id=message.chat.id,
                                          text='*Введите максимальное расстояние *'
                                               '* от отеля до центра города (в км)*',
                                          parse_mode='Markdown')
-            current_user.next_func = max_distance
+            current_user.next_function = maximum_distance
             my_bot.register_next_step_handler(result, check_message)
         else:
             result = my_bot.send_message(chat_id=message.chat.id,
@@ -193,7 +193,7 @@ def min_distance(message: types.Message) -> None:
         my_bot.register_next_step_handler(result, check_message)
 
 
-def max_distance(message: types.Message) -> None:
+def maximum_distance(message: Message) -> None:
     """The handler that interacts with the entered
     a message (the maximum distance from the city center) and
     offers to enter it again if its format is specified incorrectly.
@@ -209,13 +209,13 @@ def max_distance(message: types.Message) -> None:
     current_user = User.get_user(message.chat.id)
 
     if message.text.isdigit():
-        if 0 < int(message.text) > current_user.min_distance:
-            current_user.max_distance = int(message.text)
+        if 0 < int(message.text) > current_user.minimum_distance:
+            current_user.maximum_distance = int(message.text)
             result = my_bot.send_message(chat_id=message.chat.id,
                                          text='*Теперь выберите количество отелей,*'
                                               '* которое хотите посмотреть *',
                                          parse_mode='Markdown')
-            current_user.next_func = hotels_count
+            current_user.next_function = hotels_count
             my_bot.register_next_step_handler(result, check_message)
         else:
             result = my_bot.send_message(chat_id=message.chat.id,
@@ -231,7 +231,7 @@ def max_distance(message: types.Message) -> None:
         my_bot.register_next_step_handler(result, check_message)
 
 
-def hotels_count(message: types.Message) -> None:
+def hotels_count(message: Message) -> None:
     """The handler that interacts with the entered
     message (number of hotels) and offers to re-enter,
     if its format is specified incorrectly. If the message format is correct,
@@ -255,7 +255,7 @@ def hotels_count(message: types.Message) -> None:
                                          text='*Какое количество взрослых планируют*'
                                               '* проживать в отеле?*',
                                          parse_mode='Markdown')
-            current_user.next_func = adults_count
+            current_user.next_function = adults_count
             my_bot.register_next_step_handler(result, check_message)
         else:
             result = my_bot.send_message(chat_id=message.chat.id,
@@ -273,7 +273,7 @@ def hotels_count(message: types.Message) -> None:
         my_bot.register_next_step_handler(result, check_message)
 
 
-def adults_count(message: types.Message) -> None:
+def adults_count(message: Message) -> None:
     """The handler that interacts with the entered
     message (number of adults checking into the hotel) and offers to re-enter,
     if its format is specified incorrectly. If the correct message is entered,
@@ -291,7 +291,7 @@ def adults_count(message: types.Message) -> None:
                             text='*Хорошо я запомню)*'
                                  '* Теперь выберите  дату заселения*',
                             parse_mode='Markdown')
-        cmds_keyboard.date_selection(message)
+        inline.date_selection(message)
     else:
         result = my_bot.send_message(chat_id=message.chat.id,
                                      text='*Кажется вы ввели не совсем то, что надо) *'
@@ -302,7 +302,7 @@ def adults_count(message: types.Message) -> None:
         my_bot.register_next_step_handler(result, check_message)
 
 
-def yes_answer_about_foto(message: types.Message) -> None:
+def yes_answer_about_photo(message: Message) -> None:
     """The handler of a command, responding to a positive response, a question
     about displaying photos of the hotel and calling the function of selecting them
     quantities. Initially the name of the following function is written in a special field
@@ -314,34 +314,36 @@ def yes_answer_about_foto(message: types.Message) -> None:
     :return: None"""
 
     current_user = User.get_user(message.chat.id)
-    delete_prev_message(message)
+    delete_previous_message(message)
     result = my_bot.send_message(chat_id=message.chat.id,
                                  text='*Какое количество фотографий *'
                                       '* хотите  отобразить на экране? *',
                                  parse_mode='Markdown')
-    current_user.next_func = photo_count
+    current_user.next_function = photo_count
     my_bot.register_next_step_handler(result, check_message)
 
 
-def no_answer_about_foto(message: types.Message) -> None:
+def no_answer_about_photo(message: Message) -> None:
     """The handler of the command, responding to a negative response, question
     about displaying hotel photos.  Emoji from result_waiting is forcibly deleted.
+    The function for displaying found hotels is called
 
     :param message: argument
     :type message: Message object
     :return: None"""
 
-    delete_prev_message(message)
+    delete_previous_message(message)
     my_bot.send_message(chat_id=message.chat.id,
                         text='*Значит будем без фотографий) *',
                         parse_mode='Markdown')
-    rapidapi.result_displaying(message)
+    result_displaying(message)
 
 
-def photo_count(message: types.Message) -> None:
+def photo_count(message: Message) -> None:
     """The handler that interacts with the entered
     a message (the number of displayed photos of the hotel) and
-    offers to re-enter if its format is specified incorrectly.
+    offers to re-enter if its format is specified incorrectly. The function for displaying
+    found hotels is called at the end
 
     :param message: argument
     :type message: Message object
@@ -355,7 +357,7 @@ def photo_count(message: types.Message) -> None:
             my_bot.send_message(chat_id=message.chat.id,
                                 text='*Хорошо я запомню)*',
                                 parse_mode='Markdown')
-            rapidapi.result_displaying(message)
+            result_displaying(message)
         else:
             result = my_bot.send_message(chat_id=message.chat.id,
                                          text='*Вы ввели не допустимое количество*'
@@ -372,7 +374,7 @@ def photo_count(message: types.Message) -> None:
         my_bot.register_next_step_handler(result, check_message)
 
 
-def check_in(message: types.Message) -> None:
+def check_in(message: Message) -> None:
     """The handler that interacts with the entered
     a message (the date of check-in at the hotel) and offers to re-enter,
     if it is specified incorrectly. If the correct message is entered,
@@ -394,16 +396,16 @@ def check_in(message: types.Message) -> None:
                                  '*проживать в отеле*',
                             parse_mode='Markdown')
         current_user.date_flag = True
-        cmds_keyboard.date_selection(message)
+        inline.date_selection(message)
     else:
         my_bot.send_message(chat_id=message.chat.id,
                             text='*Была указана дата из прошлого.*'
                                  '* Попробуйте еще раз*',
                             parse_mode='Markdown')
-        cmds_keyboard.date_selection(message)
+        inline.date_selection(message)
 
 
-def check_out(message: types.Message) -> None:
+def check_out(message: Message) -> None:
     """The handler that interacts with the entered message
     (the date on which you plan to stay at the hotel) and
     offers to enter it again if it is specified incorrectly. The entered date is taken
@@ -428,16 +430,16 @@ def check_out(message: types.Message) -> None:
                                      '* (меньше даты заселения). *'
                                      '* Попробуйте еще раз*',
                                 parse_mode='Markdown')
-            cmds_keyboard.date_selection(message)
+            inline.date_selection(message)
     else:
         my_bot.send_message(chat_id=message.chat.id,
                             text='*Была указана дата из прошлого.*'
                                  '* Попробуйте еще раз*',
                             parse_mode='Markdown')
-        cmds_keyboard.date_selection(message)
+        inline.date_selection(message)
 
 
-def check_message(message: types.Message) -> None:
+def check_message(message: Message) -> None:
     """Checks whether the entered messages correspond to the main ones
     commands of the bot or causes a response to the pressed
     menu button. Redirection to the corresponding function is carried out with
@@ -454,29 +456,29 @@ def check_message(message: types.Message) -> None:
     current_user = User.get_user(message.chat.id)
 
     if message.text == '/lowprice':
-        command_low_price(message)
+        commands.command_low_price(message)
     elif message.text == '/highprice':
-        command_high_price(message)
+        commands.command_high_price(message)
     elif message.text == '/bestdeal':
-        cmd_best_deal(message)
+        commands.command_best_deal(message)
     elif message.text == '/history':
         pass
     elif message.text == '/hello-world':
-        say_hello_world(message)
+        commands.say_hello_world(message)
         my_bot.send_message(chat_id=message.chat.id,
                             text='*Теперь можете продолжить с предыдущего шага *'
                                  '* и ввести то, что не успели*', parse_mode='Markdown')
         my_bot.register_next_step_handler(message, check_message)
     elif message.text == '/help':
-        help_me(message)
+        commands.help_me(message)
         my_bot.register_next_step_handler(message, check_message)
-    elif message.text == cmds_keyboard.emoji.emojize('Меню   :desert_island:'):
-        cmds_keyboard.commands_keyboard(message)
+    elif message.text == emoji.emojize('Меню   :desert_island:'):
+        inline.commands_keyboard(message)
     else:
-        current_user.next_func(message)
+        current_user.next_function(message)
 
 
-def delete_prev_message(message: types.Message) -> None:
+def delete_previous_message(message: Message) -> None:
     """Removes the previous built-in buttons or message if it is possible
     and necessary
 
@@ -494,7 +496,7 @@ def delete_prev_message(message: types.Message) -> None:
         pass
 
 
-def check_condition_for_two_commands(message: types.Message) -> None:
+def check_condition_for_two_commands(message: Message) -> None:
     """Depending on the current state, it removes either the inline keyboard
     with variants of found cities,  question about viewing photos, the  calendar
     or suggestion to continue or end the search (in the end of the script),
@@ -507,21 +509,21 @@ def check_condition_for_two_commands(message: types.Message) -> None:
     :return: None"""
 
     current_user = User.get_user(message.chat.id)
-    delete_prev_message(message)
+    delete_previous_message(message)
     if current_user.first_condition:
-        cmds_keyboard.cities_keyboard(message)
+        inline.cities_keyboard(message)
     elif current_user.second_condition:
-        cmds_keyboard.date_selection(message)
+        inline.date_selection(message)
     elif current_user.fourth_condition:
-        cmds_keyboard.yes_no_keyboard(message)
+        inline.yes_no_keyboard(message)
     elif current_user.fifth_condition:
         if current_user.start_from_the_beginning_part_1:
-            cmds_keyboard.show_more_hotels_part_1(message)
+            inline.show_more_hotels_part_1(message)
         elif current_user.start_from_the_beginning_part_2:
-            cmds_keyboard.show_more_hotels_part_2(message)
+            inline.show_more_hotels_part_2(message)
 
 
-def result_waiting(message: types.Message):
+def result_waiting(message: Message):
     """It displays waiting message and gif-image, and after receiving
     a response from the API, deletes them. Depending on the current state
     of the bot, it calls the corresponding function, or does the same and
@@ -545,11 +547,11 @@ def result_waiting(message: types.Message):
 
     if request_to_api(message):
         if current_user.fourth_condition or current_user.fifth_condition:
-            rapidapi.photo_selection(message)
+            photo_selection(message)
         if current_user.third_condition:
             current_user.third_condition = False
             current_user.fourth_condition = True
-            cmds_keyboard.yes_no_keyboard(message)
+            inline.yes_no_keyboard(message)
         my_bot.delete_message(chat_id=message.chat.id,
                               message_id=second_result.message_id)
         my_bot.delete_message(chat_id=message.chat.id,

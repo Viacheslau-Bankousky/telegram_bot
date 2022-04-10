@@ -1,40 +1,5 @@
-from telegram_bot_calendar import DetailedTelegramCalendar
 from datetime import date
 from typing import Optional, List, Dict, Union, Set
-
-
-class MyTranslationCalendar(DetailedTelegramCalendar):
-    """Custom calendar class
-
-    :param: days_of_week:  list with the names of the days of the week
-    :type: days_of_week: list with strings
-    :param: month:  list with the names of the months
-    :type: month: list with srings
-    :param: prev_button: previous button
-    :type: prev_button: string
-    :param: next_button: next button
-    :type: next_button: string
-    :param: my_LSTEP: dictionary with year, month and day as value
-    and y, m,d as key
-    :type: my_LSTEP: dictionary with strings as key and value"""
-
-    prev_button = "⬅️"
-    next_button = "➡️"
-    my_LSTEP = {
-        'y': 'Год',
-        'm': 'Месяц',
-        'd': 'День'
-    }
-
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-        self.days_of_week['ru'] = [
-            'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Cб', 'Вс'
-        ]
-        self.months['ru'] = [
-            'Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь', 'Июль', 'Август',
-            'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'
-        ]
 
 
 class User:
@@ -150,10 +115,10 @@ class User:
         self.adults_count: str is None
         self.check_in: date is None
         self.check_out: date is None
-        self.min_price: int is None
-        self.max_price: int is None
-        self.min_distance: int is None
-        self.max_distance: int is None
+        self.minimum_price: int is None
+        self.maximum_price: int is None
+        self.minimum_distance: int is None
+        self.maximum_distance: int is None
         self.date_buffer: date is None
         self.date_flag: bool = False
         self.zero_condition: bool = True
@@ -162,7 +127,7 @@ class User:
         self.third_condition: bool = False
         self.fourth_condition: bool = False
         self.fifth_condition: bool = False
-        self.next_func: str is None
+        self.next_function: str is None
         self.id_message_for_delete: str is None
         self.delete_message: bool = False
         self.current_buffer: Optional[Dict, List] is None
