@@ -2,9 +2,9 @@ from datetime import date
 from typing import Optional, List, Dict, Union, Set
 
 
-class User:
+class UserData:
     """Class for recording temporary data during execution
-    scripts and quick access to them
+    script and quick access to it
 
     :param: current_command: the command, that the user entered
     :type: current_command: string
@@ -14,8 +14,8 @@ class User:
     :type: hotels_count: integer
     :param: hotel_id: id of the selected hotel in case of viewing photos
     :type: hotel_id: string
-    :param: current_hotel_index:the index of the current hotel when they are 
-    displayed sequentially by the bot
+    :param: current_hotel_index: the index of each of the hotels in the list, in the process
+    of sequential display by the bot
     :type: current_hotel_index: integer
     :param: destination_id: destination_id  of the selected city
     :type: destination_id: string
@@ -29,47 +29,49 @@ class User:
     :type: check_in:  date object
     :param: check_out:  check-out date from the hotel
     :type: check_out:  date object
-    :param: min_price: minimum price per night at the hotel
-    :type: min_price: integer
-    :param: max_price: maximum price per night at the hotel
-    :type: max_price: integer
-    :param: min_distance: minimum hotel distance from the city center (in km)
-    :type: min_distance: integer
-    :param: max_distance: maximum distance of the hotel 
+    :param: minimum_price: minimum price per night at the hotel
+    :type: minimum_price: integer
+    :param: maximum_price: maximum price per night at the hotel
+    :type: maximum_price: integer
+    :param: minimum_distance: minimum hotel distance from the city center (in km)
+    :type: minimum_distance: integer
+    :param: maximum_distance: maximum hotel distance 
     from the city center (in km)
-    :type: max_distance: integer
+    :type: maximum_distance: integer
     :param: date_buffer: attribute for temporary recording of check-in dates
-    and eviction from the main file and convenient access to them from 
-    the corresponding the handler in the handlers file
+    and eviction from the default_handlers and convenient access to them from 
+    the corresponding  handler from the handlers_before_request
     :type: date_buffer: date object
     :param: date_flag: the 'switch' attribute, for redirecting dates
-    check-ins and check-outs from the main file to the corresponding handler 
-    (check_in or check_out) in the handlers file
+    check-ins and check-outs from the default_handlers to the corresponding handler 
+    (check_in or check_out) from the handlers_before_request
     :type: date_flag: bool
     :param: zero_condition: the state from the moment the bot is turned on
-    to the display of the keyboard with the cities found 
+    until the display of the keyboard with the cities found 
     :type: zero_condition: bool
-    :param: first_condition: the state from the moment the keyboard is displayed
-    with the found cities to the display of the differance_between_commands function
+    :param: first_condition: the state from the moment the keyboard 
+    with the found cities is displayed until the differance_between_commands function
+    from handlers_before_request is called
     :type: first_condition: bool
-    :param: second_condition: the state from the moment the
-    differance_between_commands function is called to the check_out function call
+    :param: second_condition: the state from the moment the differance_between_commands function 
+    from handlers_before_request is called until the check_out function from handlers_before_request 
+    is called
     :type: second_condition: bool
-    :param: third_condition: the state from the moment the check_out function is 
-    called to the call of the result_waiting function (second function call) and
-    return True of it
+    :param: third_condition: the state from the moment the check_out function
+    from handlers_before_request is called until the result_waiting function (second function call) from
+    handlers_before_request is called and return True of it
     :type: third_condition: bool
     :param: fourth_condition: the state from the moment the result_waiting 
-    function is called (second function call)  and return True of it to the moment
-    the keyboard is displayed with a question about viewing photos of hotels
+    function from handlers_before_request is called (second function call) and return True of it
+    until the moment the keyboard  with a question about viewing photos of hotels is displayed
     :type: fourth_condition: bool
-    :param: fifth_conditin: the state of the first display of the required number 
+    :param: fifth_condition: the state from the first display of the required number 
     of hotels until the end of the script execution
     :type: fifth_condition: bool
-    :param: next_func: the name of the function in the chain that will be called
+    :param: next_function: the name of the function in the function chain that will be called
     next
-    :type: next_func: string
-    :param: id_message_for_delete: message id with on-screen keyboard,
+    :type: next_function: string
+    :param: id_message_for_delete: message id with inline keyboard,
     subject to deletion, in case it has not been used.
     :type: id_message_for_delete: string
     :param: delete_message: the presence of a message that can be deleted
@@ -85,9 +87,9 @@ class User:
     :param : photo_buffer: deserialized JSON file with hotel photos (the third and 
     subsequent API call)
     :type: photo_buffer: dictionary of dictionaries 
-    :param: hotels_photos: dictionary with photos of all hotels
+    :param: hotels_photos: dictionary with photos of all hotels (after the json file is processed)
     :type: hotels_photos:  dictionary, where the key
-    is hotel_id, the value is set with urls
+    is hotel_id, the value is set with the photo urls
     :param: connect_attempt: number of API call attempts made
     :type: connect_attempt: integer
     :param: start_from_the_beginning_part_1: the first display of the specified 
@@ -144,17 +146,17 @@ class User:
          object from the dictionary, if such exists, either creates a new one,
          adds it to the dictionary and also returns from there
 
-        :param: chat_id: message.chat.id
+        :param: chat_id: id of the user's chat
         :type: chat_id: string
-        :return: an object of the User class
+        :return: an object of the User data-class
         :rtype: User object"""
 
-        if User.all_users.get(chat_id) is None:
-            User.all_users[chat_id] = User()
-        return User.all_users.get(chat_id)
+        if UserData.all_users.get(chat_id) is None:
+            UserData.all_users[chat_id] = UserData()
+        return UserData.all_users.get(chat_id)
 
     def clear_all(self):
-        """Updates the values of all dynamic attributes of the class object
+        """Updates the values of all dynamic attributes of the user data-class object
     and sets the value to None or bool"""
 
         for i_elem in self.__dict__:

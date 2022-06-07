@@ -1,12 +1,14 @@
 from re import fullmatch
 from loader import my_bot
 from telebot.types import Message
-from classes.data_class import User
+from classes.data_class import UserData
 import keyboards.inline.inline_keyboards as inline
 import emoji
 import handlers.handlers_before_request.handlers as handlers
+from logger.logger import logger_wraps
 
 
+@logger_wraps()
 def send_greeting(message: Message) -> None:
     """Reacts to the pressed menu button, the hello message entered by the user,
      or offers to use the menu button for any other message
@@ -29,6 +31,7 @@ def send_greeting(message: Message) -> None:
                             parse_mode='Markdown')
 
 
+@logger_wraps()
 def send_initial_answer(message: Message) -> None:
     """Reacts to the pressed menu button or offers to use it if any message
      is entered (in this case, the previous inline keyboard with the displayed hotels
@@ -50,6 +53,7 @@ def send_initial_answer(message: Message) -> None:
         inline.cities_keyboard(message)
 
 
+@logger_wraps()
 def send_middle_answer(message: Message) -> None:
     """Reacts to the pressed menu button. If the user has entered a message
     in the form of a date, the bot offers to use an inline calendar. If any other
@@ -80,6 +84,7 @@ def send_middle_answer(message: Message) -> None:
         inline.date_selection(message)
 
 
+@logger_wraps()
 def send_next_middle_answer(message: Message) -> None:
     """Reacts to the pressed menu button. If the user, when asked about
     viewing photos, instead of using the built-in keyboard, manually enter
@@ -110,6 +115,7 @@ def send_next_middle_answer(message: Message) -> None:
         inline.yes_no_keyboard(message)
 
 
+@logger_wraps()
 def send_last_answer(message: Message) -> None:
     """Reacts to the pressed menu button or offers to use it when entering
     any message. If there are still available hotels, displays an inline keyboard
@@ -121,7 +127,7 @@ def send_last_answer(message: Message) -> None:
     :type message: Message object
     :return: None"""
 
-    current_user = User.get_user(message.chat.id)
+    current_user = UserData.get_user(message.chat.id)
 
     if message.text == emoji.emojize('Меню   :desert_island:'):
         inline.commands_keyboard(message)

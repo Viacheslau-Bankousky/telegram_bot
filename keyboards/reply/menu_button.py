@@ -1,7 +1,9 @@
 from telebot.types import ReplyKeyboardMarkup, KeyboardButton
 import emoji
+from logger.logger import logger_wraps
 
 
+@logger_wraps()
 def menu_button() -> ReplyKeyboardMarkup:
     """Create menu button and return it
 

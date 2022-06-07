@@ -1,27 +1,28 @@
 from telebot.types import Message, InlineKeyboardMarkup, InlineKeyboardButton
 import emoji
-from classes.data_class import User
+from classes.data_class import UserData
 from classes.calendar import MyTranslationCalendar
 from loader import my_bot
 import handlers.handlers_before_request.handlers as handlers
+from logger.logger import logger_wraps
 
 
+@logger_wraps()
 def commands_keyboard(message: Message) -> None:
     """Inline keyboard with options for the main most used
     commands (the /hello-world command is not displayed specifically,
     in view of its remoteness from the main logic of the bot; command
     /help is not displayed because the menu command is available throughout
     the execution of the entire script).The id of the message with the inline
-    keyboard is recorded in a special field of the User class (also the flag field
+    keyboard is recorded in a special field of the User data class (also the flag field
     is activated), for its further deletion (if necessary). The displayed menu removes
-    the previous inline keyboards. All dynamic attributes of the class
-    object are updated
+    the previous inline keyboards.
 
     :param message: argument
     :type message: Message object
     :return: None"""
 
-    current_user = User.get_user(message.chat.id)
+    current_user = UserData.get_user(message.chat.id)
     keyboard = InlineKeyboardMarkup().add(
         InlineKeyboardButton(
             text=emoji.emojize('LOWPRICE  :money-mouth_face:'),
@@ -47,22 +48,22 @@ def commands_keyboard(message: Message) -> None:
     )
 
     handlers.delete_previous_message(message)
-    current_user.clear_all()
     current_user.id_message_for_delete = result.message_id
     current_user.delete_message = True
 
 
+@logger_wraps()
 def yes_no_keyboard(message: Message) -> None:
-    """Inline keyboard with answers a question about view photo of hotels.
-    The id of the message with the on-screen
-    keyboard is recorded in a special field of the User class (also the flag field
+    """Inline keyboard with answers a question about viewing photos of hotels.
+    The id of the message with the inline
+    keyboard is recorded in a special field of the User data class (also the flag field
     is activated), for its further deletion (if necessary)
 
     :param message: argument
     :type message: Message object
     :return: None"""
 
-    current_user = User.get_user(message.chat.id)
+    current_user = UserData.get_user(message.chat.id)
     keyboard = InlineKeyboardMarkup().add(
         InlineKeyboardButton(
             text=emoji.emojize('ДА   :thumbs_up:'),
@@ -81,17 +82,18 @@ def yes_no_keyboard(message: Message) -> None:
     current_user.delete_message = True
 
 
+@logger_wraps()
 def date_selection(message: Message) -> None:
-    """Сreates a calendar for entering the check-in and
-    check-out dates from the hotel. The id of the message with the on-screen
-    keyboard is recorded in a special field of the User class (also the flag field
+    """It creates a calendar for entering the check-in and
+    check-out dates from the hotel. The id of the message with the inline
+    keyboard is recorded in a special field of the User data class (also the flag field
     is activated), for its further deletion (if necessary)
 
     :param message: argument
     :type message: Message object
     :return: None"""
 
-    current_user = User.get_user(message.chat.id)
+    current_user = UserData.get_user(message.chat.id)
 
     calendar, step = MyTranslationCalendar(locale='ru').build()
     result = my_bot.send_message(message.chat.id,
@@ -101,18 +103,19 @@ def date_selection(message: Message) -> None:
     current_user.delete_message = True
 
 
+@logger_wraps()
 def cities_keyboard(message: Message) -> None:
-    """Keyboard with the found  cities (state 1).
+    """Keyboard with the found  cities (state 0).
     The id of the message with the inline keyboard is recorded in a special field
-    of the User class (also the flags field is activated): 1 - for its further deletion
-     (if necessary) 2 - for going  to the next function after selecting the city.
-     The current state of the bot is changed.
+    of the User data class (also the flags field is activated): 1 - for its further deletion
+    (if necessary) 2 - for going  to the next function after selecting the city.
+    The current state of the bot is changed.
 
     :param message: argument
     :type message: Message object
     :return: None"""
 
-    current_user = User.get_user(message.chat.id)
+    current_user = UserData.get_user(message.chat.id)
 
     keyboard = InlineKeyboardMarkup()
     for i_element in current_user.current_buffer:
@@ -128,6 +131,7 @@ def cities_keyboard(message: Message) -> None:
     current_user.first_condition = True
 
 
+@logger_wraps()
 def visit_the_website(message: Message) -> InlineKeyboardMarkup:
     """Creates a keyboard with a single button that opens the hotel's website
 
@@ -136,7 +140,7 @@ def visit_the_website(message: Message) -> InlineKeyboardMarkup:
     :return: keyboard
     :rtype: types.InlineKeyboardMarkup"""
 
-    current_user = User.get_user(message.chat.id)
+    current_user = UserData.get_user(message.chat.id)
     button = InlineKeyboardButton(
         text='Сайт отеля',
         url=f'https://ru.hotels.com/ho{current_user.hotel_id}'
@@ -145,9 +149,10 @@ def visit_the_website(message: Message) -> InlineKeyboardMarkup:
     return keyboard
 
 
+@logger_wraps()
 def show_more_hotels_part_1(message: Message) -> None:
     """After the first display of the specified number of hotels, it offers to load
-    more hotels with the same parameters, start a new search or stop the search.
+    more hotels with the same parameters, start a new searching or stop it.
     The id of the inline keyboard is recorded for later deletion. The current state
     of the bot is changed. The flag is activated for the correct display of this particular
     inline keyboard when the user enters any messages or commands /hello-world
@@ -157,7 +162,7 @@ def show_more_hotels_part_1(message: Message) -> None:
     :type message: Message object
     :return: None"""
 
-    current_user = User.get_user(message.chat.id)
+    current_user = UserData.get_user(message.chat.id)
     keyboard = InlineKeyboardMarkup().add(
         InlineKeyboardButton(
             text=emoji.emojize('Еще отели   :grinning_face_with_big_eyes:'),
@@ -183,6 +188,7 @@ def show_more_hotels_part_1(message: Message) -> None:
     current_user.start_from_the_beginning_part_1 = True
 
 
+@logger_wraps()
 def show_more_hotels_part_2(message: Message) -> None:
     """Suggests starting a new search or ending the search when there
     are no more hotels by the specified parameter. The id of the inline keyboard
@@ -194,7 +200,7 @@ def show_more_hotels_part_2(message: Message) -> None:
     :type message: Message object
     :return: None"""
 
-    current_user = User.get_user(message.chat.id)
+    current_user = UserData.get_user(message.chat.id)
     keyboard = InlineKeyboardMarkup().add(
         InlineKeyboardButton(
             text=emoji.emojize('Новый поиск   :star-struck:'),
