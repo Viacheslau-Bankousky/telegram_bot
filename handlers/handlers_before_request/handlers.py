@@ -87,7 +87,7 @@ def differance_between_commands(message: Message) -> None:
     else:
         result = my_bot.send_message(chat_id=message.chat.id,
                                      text='*Введите минимальную цену*'
-                                          '* за сутки в отеле*',
+                                          '* за сутки в отеле (в российских рублях)*',
                                      parse_mode='Markdown')
         current_user.next_function = minimum_price
         my_bot.register_next_step_handler(result, check_message)
@@ -113,7 +113,7 @@ def minimum_price(message: Message) -> None:
             current_user.minimum_price = int(message.text)
             result = my_bot.send_message(chat_id=message.chat.id,
                                          text='*Введите максимальную цену*'
-                                              '* за сутки проживания в отеле*',
+                                              '* за сутки проживания в отеле (в российских рублях)*',
                                          parse_mode='Markdown')
             current_user.next_function = maximum_price
             my_bot.register_next_step_handler(result, check_message)
@@ -183,27 +183,29 @@ def minimum_distance(message: Message) -> None:
     :return: None"""
 
     current_user = UserData.get_user(message.chat.id)
-
-    if message.text.isdigit():
-        if int(message.text) > 0:
-            current_user.minimum_distance = int(message.text)
-            result = my_bot.send_message(chat_id=message.chat.id,
-                                         text='*Введите максимальное расстояние *'
-                                              '* от отеля до центра города (в км)*',
-                                         parse_mode='Markdown')
-            current_user.next_function = maximum_distance
-            my_bot.register_next_step_handler(result, check_message)
+    try:
+        if message.text.isdigit():
+            if int(message.text) > 0:
+                current_user.minimum_distance = int(message.text)
+                result = my_bot.send_message(chat_id=message.chat.id,
+                                             text='*Введите максимальное расстояние *'
+                                                  '* от отеля до центра города (в км)*',
+                                             parse_mode='Markdown')
+                current_user.next_function = maximum_distance
+                my_bot.register_next_step_handler(result, check_message)
+            else:
+                result = my_bot.send_message(chat_id=message.chat.id,
+                                             text='*Вы ввели не допустимое расстояние.*'
+                                                  '* Попробуйте еще раз*',
+                                             parse_mode='Markdown')
+                my_bot.register_next_step_handler(result, check_message)
         else:
             result = my_bot.send_message(chat_id=message.chat.id,
-                                         text='*Вы ввели не допустимое расстояние.*'
-                                              '* Попробуйте еще раз*',
+                                         text='*Попробуйте ввести другое расстояние*',
                                          parse_mode='Markdown')
             my_bot.register_next_step_handler(result, check_message)
-    else:
-        result = my_bot.send_message(chat_id=message.chat.id,
-                                     text='*Попробуйте ввести другое расстояние*',
-                                     parse_mode='Markdown')
-        my_bot.register_next_step_handler(result, check_message)
+    except ValueError:
+        logger.exception('ups... something went wrong')
 
 
 @logger_wraps()
@@ -302,12 +304,20 @@ def adults_count(message: Message) -> None:
 
     current_user = UserData.get_user(message.chat.id)
     if message.text.isdigit():
-        current_user.adults_count = message.text
-        my_bot.send_message(chat_id=message.chat.id,
-                            text='*Хорошо я запомню)*'
-                                 '* Теперь выберите  дату заселения*',
-                            parse_mode='Markdown')
-        inline.date_selection(message)
+        if 0 < int(message.text) < 20:
+            current_user.adults_count = message.text
+            my_bot.send_message(chat_id=message.chat.id,
+                                text='*Хорошо я запомню)*'
+                                     '* Теперь выберите  дату заселения*',
+                                parse_mode='Markdown')
+            inline.date_selection(message)
+        else:
+            result = my_bot.send_message(chat_id=message.chat.id,
+                                         text='*Кажется вы ввели слишком много людей) *'
+                                              '* Попробуйте еще раз (желательно до 20)*',
+                                         parse_mode='Markdown')
+            my_bot.register_next_step_handler(result, check_message)
+
     else:
         result = my_bot.send_message(chat_id=message.chat.id,
                                      text='*Кажется вы ввели не совсем то, что надо) *'
@@ -565,23 +575,26 @@ def result_waiting(message: Message):
 
     current_user = UserData.get_user(message.chat.id)
 
-    first_result = my_bot.send_message(chat_id=message.chat.id,
-                                       text='*Выполняю поиск. Подождите немного*',
-                                       parse_mode='Markdown')
+    try:
+        first_result = my_bot.send_message(chat_id=message.chat.id,
+                                           text='*Выполняю поиск. Подождите немного*',
+                                           parse_mode='Markdown')
 
-    second_result = my_bot.send_video(message.chat.id,
-                                      'https://i.gifer.com/FWcb.gif', None, 'Text')
-    current_user.id_message_for_delete = second_result.message_id
-    current_user.delete_message = True
+        second_result = my_bot.send_video(message.chat.id,
+                                          'https://i.gifer.com/FWcb.gif', None, 'Text')
+        current_user.id_message_for_delete = second_result.message_id
+        current_user.delete_message = True
 
-    if request_to_api(message):
-        if current_user.fourth_condition or current_user.fifth_condition:
-            photo_selection(message)
-        if current_user.third_condition:
-            current_user.third_condition = False
-            current_user.fourth_condition = True
-            inline.yes_no_keyboard(message)
-        my_bot.delete_message(chat_id=message.chat.id,
-                              message_id=second_result.message_id)
-        my_bot.delete_message(chat_id=message.chat.id,
-                              message_id=first_result.message_id)
+        if request_to_api(message):
+            if current_user.fourth_condition or current_user.fifth_condition:
+                photo_selection(message)
+            if current_user.third_condition:
+                current_user.third_condition = False
+                current_user.fourth_condition = True
+                inline.yes_no_keyboard(message)
+            my_bot.delete_message(chat_id=message.chat.id,
+                                  message_id=second_result.message_id)
+            my_bot.delete_message(chat_id=message.chat.id,
+                                  message_id=first_result.message_id)
+    except (ApiTelegramException, RuntimeError):
+        logger.exception('ups... something went wrong')

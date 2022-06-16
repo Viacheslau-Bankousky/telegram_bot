@@ -12,6 +12,8 @@ from re import search, findall
 import keyboards.inline.inline_keyboards as inline
 from logger.logger import logger_wraps, logger
 import database.database_methods as database
+from telebot.apihelper import ApiTelegramException
+import validators
 
 
 @logger_wraps()
@@ -276,7 +278,7 @@ def check_photo_answer(message: Message,
     :return: None"""
 
     current_user = UserData.get_user(message.chat.id)
-    current_user.hotel_id = hotels[index]['id']
+    current_user.hotel_id = hotels[index].get("id")
     current_user.current_hotel_index = index
     price_checker(message, hotels=hotels, index=index)
     if current_user.answer_about_photo == 'ДА':
@@ -321,47 +323,37 @@ def create_text_message(message: Message) -> str:
     hotels: List[Union[Dict]] = current_user.current_buffer
     index: int = current_user.current_hotel_index
     # This design is used to determine the total length of stay at the hotel
-    date_diff: List[int] = [
-        int(m) for m in str(current_user.check_out - current_user.check_in)
-        if m.isdigit()
-    ]
-    if date_diff[0] == 0:
-        date_diff[0] = 1
-    current_message = emoji.emojize(':hotel: Название отеля: '
-                         f'{hotels[index].get("name", "")}\n'
-                         ':magnifying_glass_tilted_right: Адрес: '
-                         f'{hotels[index]["address"].get("streetAddress", ":house_with_garden:")}'
-                         f'{hotels[index]["address"].get("extendedAddress", ":house_with_garden:")}\n'
-                         ':bar_chart: Общий рейтинг отеля: '
-                         f'{hotels[index].get("starRating", ":smiling_face:")}\n'
-                         f':chart_increasing: Рейтинг посетителей: '
-                         f'{find_rating(hotels[index], "guestReviews", "rating")}\n'
-                         f':microscope: Оценка посетителей: '
-                         f'{find_rating(hotels[index], "guestReviews", "badgeText")}\n'
-                         f':pinching_hand: Расстояние от центра города: '
-                         f'{find_distance(hotels[index], "landmarks", "distance")}\n'
-                         ':coin: Цена за сутки: '
-                         f'{find_price(hotels[index], "ratePlan", "price", "exactCurrent")} RUB\n'
-                         f':money_bag: Цена за {date_diff[0]} дней проживания: '
-                         f'{price_existing(message, date_diff)}'
-                         f' RUB\n')
-    database.add_results_to_database(message, result=current_message)
-    return current_message
+    try:
+        date_diff: List[int] = [
+            int(m) for m in str(current_user.check_out - current_user.check_in)
+            if m.isdigit()
+        ]
+        if date_diff[0] == 0:
+            date_diff[0] = 1
+        current_message = emoji.emojize(
+            ':hotel: Название отеля: '
+            f'{hotels[index].get("name", "")}\n'
+            ':magnifying_glass_tilted_right: Адрес: '
+            f'{hotels[index].get("address").get("streetAddress", ":house_with_garden:")}'
+            f'{hotels[index].get("address").get("extendedAddress", ":house_with_garden:")}\n'
+            ':bar_chart: Общий рейтинг отеля: '
+            f'{hotels[index].get("starRating", ":smiling_face:")}\n'
+            f':chart_increasing: Рейтинг посетителей: '
+            f'{find_rating(hotels[index], "guestReviews", "rating")}\n'
+            f':microscope: Оценка посетителей: '
+            f'{find_rating(hotels[index], "guestReviews", "badgeText")}\n'
+            f':pinching_hand: Расстояние от центра города: '
+            f'{find_distance(hotels[index], "landmarks", "distance")}\n'
+            ':coin: Цена за сутки: '
+            f'{find_price(hotels[index], "ratePlan", "price", "exactCurrent")} RUB\n'
+            f':money_bag: Цена за {date_diff[0]} дней проживания: '
+            f'{price_existing(message, date_diff)}'
+            f' RUB\n')
+        database.add_results_to_database(message, result=current_message)
+        return current_message
+    except TypeError:
+        logger.exception('ups... something went wrong')
 
-
-@logger_wraps()
-def find_distance(some_dictionary: Dict, first_key: str, second_key: str) -> str:
-    """Checks if the hotel has a distance from the city center. Emogi is returned
-    if the key passed to the function does not exist  or the value is returned by
-    the dictionary key, if it exists"""
-
-    if some_dictionary.get(first_key) and len(some_dictionary[first_key]) > 0:
-        if some_dictionary[first_key][0].get(second_key):
-            return some_dictionary[first_key][0][second_key]
-        else:
-            return ":red_question_mark:"
-    else:
-        return ":red_question_mark:"
 
 
 @logger_wraps()
@@ -383,6 +375,21 @@ def find_rating(some_dictionary: Dict, first_key: str, second_key: str) -> str:
     if some_dictionary.get(first_key):
         if some_dictionary[first_key].get(second_key):
             return some_dictionary[first_key][second_key]
+        else:
+            return ":red_question_mark:"
+    else:
+        return ":red_question_mark:"
+
+
+@logger_wraps()
+def find_distance(some_dictionary: Dict, first_key: str, second_key: str) -> str:
+    """Checks if the hotel has a distance from the city center. Emogi is returned
+    if the key passed to the function does not exist  or the value is returned by
+    the dictionary key, if it exists"""
+
+    if some_dictionary.get(first_key) and len(some_dictionary[first_key]) > 0:
+        if some_dictionary[first_key][0].get(second_key):
+            return some_dictionary[first_key][0][second_key]
         else:
             return ":red_question_mark:"
     else:
@@ -629,8 +636,8 @@ def photo_selection(message: Message) -> None:
 
         current_user.hotels_photos[current_user.hotel_id] = photo
         create_final_photo_list(message)
-    except IndexError:
-        logger.exception('something went wrong')
+    except (IndexError, AttributeError):
+        logger.exception('ups... something went wrong')
 
 
 @logger_wraps()
@@ -680,7 +687,7 @@ def check_urls(message: Message, photo_count: int) -> List[Union[str]]:
         urls_list: List[Union[str]] = sample(current_user.hotels_photos[
                                                  current_user.hotel_id],
                                              photo_count)
-        if all([requests.get(url).status_code == 200 for url in urls_list]):
+        if filter(validators.url, urls_list):
             return urls_list
 
 
@@ -694,15 +701,18 @@ def create_media_group(message: Message, photo: List[Union[str]]) -> None:
     :type message: Message object
     :return: None"""
 
-    my_bot.send_media_group(message.chat.id,
-                            [InputMediaPhoto(url,
-                                             caption=create_text_message(message))
-                             if photo.index(url) == 0
-                             else InputMediaPhoto(url)
-                             for url in photo])
-    my_bot.send_message(chat_id=message.chat.id,
-                        text=emoji.emojize(
-                            '*Для просмотра дополнительных опций и фотографий *'
-                            '* посетите  :backhand_index_pointing_down:*'),
-                        reply_markup=inline.visit_the_website(message),
-                        parse_mode='Markdown')
+    try:
+        my_bot.send_media_group(message.chat.id,
+                                [InputMediaPhoto(url,
+                                                 caption=create_text_message(message))
+                                 if photo.index(url) == 0
+                                 else InputMediaPhoto(url)
+                                 for url in photo])
+        my_bot.send_message(chat_id=message.chat.id,
+                            text=emoji.emojize(
+                                '*Для просмотра дополнительных опций и фотографий *'
+                                '* посетите  :backhand_index_pointing_down:*'),
+                            reply_markup=inline.visit_the_website(message),
+                            parse_mode='Markdown')
+    except ApiTelegramException:
+        logger.exception('ups... something went wrong')

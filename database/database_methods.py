@@ -4,8 +4,6 @@ from peewee import DoesNotExist
 from telebot.types import Message
 from classes.data_class import UserData
 from loader import my_bot
-from keyboards.inline.inline_keyboards import show_more_hotels_part_1, show_more_hotels_part_2
-from typing import List, Union, Dict
 
 
 @logger_wraps()
@@ -51,7 +49,7 @@ def add_results_to_database(message: Message, result: str) -> None:
         user = User.get(User.chat_id == message.chat.id)
         HotelSearch.create(users_information=user.id,
                            command=current_user.current_command,
-                           result_of_command=result)
+                           result_of_command=result + f'\nСайт отеля https://hotels.com/ho{current_user.hotel_id}')
 
 
 @logger_wraps()
@@ -65,8 +63,6 @@ def pull_from_database(message: Message) -> None:
     :type message: Message object
     :return: None"""
 
-    current_user = UserData.get_user(message.chat.id)
-
     try:
         HotelSearch.get()
         all_results = HotelSearch.select(
@@ -75,9 +71,8 @@ def pull_from_database(message: Message) -> None:
             my_bot.send_message(chat_id=message.chat.id,
                                 text=f'*Команда: {i_element.command}\n*'
                                      f'*Дата и время введения введения: {i_element.date_of_command}\n\n*'
-                                     f'{i_element.result_of_command}',
+                                     f'{i_element.result_of_command}\n', disable_web_page_preview=True,
                                 parse_mode='Markdown')
-        hotels: List[Union[Dict]] = current_user.current_buffer
 
     except DoesNotExist:
         my_bot.send_message(chat_id=message.chat.id,

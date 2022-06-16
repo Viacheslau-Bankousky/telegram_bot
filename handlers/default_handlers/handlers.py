@@ -6,7 +6,7 @@ from keyboards.reply.menu_button import menu_button
 from utils.misc.answers.answers_for_states import answers
 from classes.calendar import DetailedTelegramCalendar, MyTranslationCalendar
 from utils.misc.answers.callbacks import callbacks
-from logger.logger import logger_wraps
+from logger.logger import logger_wraps, logger
 import database.database_methods as database
 
 
@@ -14,18 +14,19 @@ import database.database_methods as database
 @logger_wraps()
 @my_bot.message_handler(commands=['start'])
 def send_basic_greeting(message: Message) -> None:
-    """Turns on the bot, calls its basic greeting and displays
-    menu button
+    """Turns on the bot, calls its basic greeting, displays menu button
+    and adds the user to the log file
 
     :param message: argument
     :type message: Message object
     :return: None"""
 
+    logger.info(f'К нам присоединился {message.from_user.first_name}')
     my_bot.send_message(message.from_user.id,
                         text='*Приветствую {}. Я Hotels_Searcher_bot *'
                              '* и я могу помочь вам найти  лучшие отели*'
                              '* на Hotels.com. Для того, чтобы просмотреть список*'
-                             '* всего того, что я умею нажмите кнопу меню*'.format(
+                             '* всего того, что я умею нажмите кнопу МЕНЮ*'.format(
                             message.from_user.first_name),
                         reply_markup=menu_button(),
                         parse_mode='Markdown')

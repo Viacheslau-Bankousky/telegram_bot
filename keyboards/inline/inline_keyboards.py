@@ -143,7 +143,7 @@ def visit_the_website(message: Message) -> InlineKeyboardMarkup:
     current_user = UserData.get_user(message.chat.id)
     button = InlineKeyboardButton(
         text='Сайт отеля',
-        url=f'https://ru.hotels.com/ho{current_user.hotel_id}'
+        url=f'https://hotels.com/ho{current_user.hotel_id}'
     )
     keyboard = InlineKeyboardMarkup().add(button)
     return keyboard
