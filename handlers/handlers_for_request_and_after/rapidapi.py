@@ -334,18 +334,18 @@ def create_text_message(message: Message) -> str:
             ':hotel: Название отеля: '
             f'{hotels[index].get("name", "")}\n'
             ':magnifying_glass_tilted_right: Адрес: '
-            f'{hotels[index].get("address").get("streetAddress", ":house_with_garden:")}'
-            f'{hotels[index].get("address").get("extendedAddress", ":house_with_garden:")}\n'
+            f'{hotels[index].get("address", "").get("streetAddress", ":house_with_garden:")}'
+            f'{hotels[index].get("address", "").get("extendedAddress", ":house_with_garden:")}\n'
             ':bar_chart: Общий рейтинг отеля: '
             f'{hotels[index].get("starRating", ":smiling_face:")}\n'
             f':chart_increasing: Рейтинг посетителей: '
-            f'{find_rating(hotels[index], "guestReviews", "rating")}\n'
+            f'{find_rating(message, index, "guestReviews", "rating")}\n'
             f':microscope: Оценка посетителей: '
-            f'{find_rating(hotels[index], "guestReviews", "badgeText")}\n'
+            f'{find_rating(message, index, "guestReviews", "badgeText")}\n'
             f':pinching_hand: Расстояние от центра города: '
-            f'{find_distance(hotels[index], "landmarks", "distance")}\n'
+            f'{find_distance(message, index, "landmarks", "distance")}\n'
             ':coin: Цена за сутки: '
-            f'{find_price(hotels[index], "ratePlan", "price", "exactCurrent")} RUB\n'
+            f'{find_price(message, index,  "ratePlan", "price", "exactCurrent")} RUB\n'
             f':money_bag: Цена за {date_diff[0]} дней проживания: '
             f'{price_existing(message, date_diff)}'
             f' RUB\n')
@@ -357,24 +357,29 @@ def create_text_message(message: Message) -> str:
 
 
 @logger_wraps()
-def find_rating(some_dictionary: Dict, first_key: str, second_key: str) -> str:
+def find_rating(message: Message, index: int, first_key: str, second_key: str) -> str:
     """It is used to search for values (the user rating of the hotel and its user review)
     in the hotel dictionary by the corresponding keys. Emogi is returned
     if the key passed to the function does not exist  or the value is returned by
     the dictionary key, if it exists
 
-    :param: some_dict: current hotel from hotels list
-    :type: some_dict: dictionary
-    :param: first_key: first key from some_dict
+    :param: message: argument
+    :type: message: Message object
+    :param: index - index of current hotel in hotels dictionary
+    (current_buffer attribute of UserData class)
+    :param: first_key: first key from hotels dictionary
     :type: first_key: string
-    :param: second_key: second key of  nested dictionary from some_dict
+    :param: second_key: second key of  nested dictionary from hotels dictionary
     :type: second_key: string
     :return: hotel rating or question emoji sign
     :rtype: string"""
 
-    if some_dictionary.get(first_key):
-        if some_dictionary[first_key].get(second_key):
-            return some_dictionary[first_key][second_key]
+
+    current_user = UserData.get_user(message.chat.id)
+    hotel = current_user.current_buffer
+    if hotel[index].get(first_key):
+        if hotel[index][first_key].get(second_key):
+            return hotel[index][first_key][second_key]
         else:
             return ":red_question_mark:"
     else:
@@ -382,14 +387,27 @@ def find_rating(some_dictionary: Dict, first_key: str, second_key: str) -> str:
 
 
 @logger_wraps()
-def find_distance(some_dictionary: Dict, first_key: str, second_key: str) -> str:
+def find_distance(message: Message, index: int, first_key: str, second_key: str) -> str:
     """Checks if the hotel has a distance from the city center. Emogi is returned
     if the key passed to the function does not exist  or the value is returned by
-    the dictionary key, if it exists"""
+    the dictionary key, if it exists
 
-    if some_dictionary.get(first_key) and len(some_dictionary[first_key]) > 0:
-        if some_dictionary[first_key][0].get(second_key):
-            return some_dictionary[first_key][0][second_key]
+    :param: message: argument
+    :type: message: Message object
+    :param: index - index of current hotel in hotels dictionary
+    (current_buffer attribute of UserData class)
+    :param: first_key: first key from hotels dictionary
+    :type: first_key: string
+    :param: second_key: second key of  nested dictionary from hotels dictionary
+    :type: second_key: string
+    :return: hotel rating or question emoji sign
+    :rtype: string"""
+
+    current_user = UserData.get_user(message.chat.id)
+    hotel = current_user.current_buffer
+    if hotel[index].get(first_key) and len(hotel[index][first_key]) > 0:
+        if hotel[index][first_key][0].get(second_key):
+            return hotel[index][first_key][0][second_key]
         else:
             return ":red_question_mark:"
     else:
@@ -397,27 +415,31 @@ def find_distance(some_dictionary: Dict, first_key: str, second_key: str) -> str
 
 
 @logger_wraps()
-def find_price(some_dictionary: Dict, first_key: str,
+def find_price(message: Message, index: int, first_key: str,
                second_key: str, third_key: str) -> str:
     """It is used to search for values (hotel price) in the hotel dictionary by
-    the corresponding keys. Emogi is returned if the key passed to the function
+    the corresponding keys, Emogi is returned if the key passed to the function
      does not exist  or the value is returned by the dictionary key, if it exists
 
-    :param: some_dict: current hotel from hotels list
-    :type: some_dict: dictionary
-    :param: first_key: first key from some_dict
+    :param: message: argument
+    :type: message: Message object
+    :param: index - index of current hotel in hotels dictionary
+    (current_buffer attribute of UserData class)
+    :param: first_key: first key from hotels dictionary
     :type: first_key: string
-    :param: second_key: second key of  nested dictionary from some_dict
+    :param: second_key: second key of  nested dictionary from hotels dictionary
     :type: second_key: string
-    :param: third_key: third key of  nested dictionary from some_dict
+    :param: third_key: third key of  nested dictionary from hotels dictionary
     :type: second_key: string
     :return: hotel price or question emoji sign
     :rtype: string"""
 
-    if some_dictionary.get(first_key):
-        if some_dictionary[first_key].get(second_key):
-            if some_dictionary[first_key][second_key].get(third_key):
-                return some_dictionary[first_key][second_key][third_key]
+    current_user = UserData.get_user(message.chat.id)
+    hotel = current_user.current_buffer
+    if hotel[index].get(first_key):
+        if hotel[index][first_key].get(second_key):
+            if hotel[index][first_key][second_key].get(third_key):
+                return hotel[index][first_key][second_key][third_key]
         else:
             return ":red_question_mark:"
     else:
@@ -692,7 +714,7 @@ def check_urls(message: Message, photo_count: int) -> List[Union[str]]:
 
 
 def create_media_group(message: Message, photo: List[Union[str]]) -> None:
-    """Displays a message with a media group (hotel photos and description of it)
+    """Displays a message with a media group (hotel photos and its description)
      and at the end displays another message with an inline button (hotel website)
 
     :param photo: list with hotel urls

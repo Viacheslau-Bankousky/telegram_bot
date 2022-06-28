@@ -6,6 +6,7 @@ import keyboards.inline.inline_keyboards as inline
 import emoji
 import handlers.handlers_before_request.handlers as handlers
 from logger.logger import logger_wraps
+from keyboards.reply.menu_button import menu_button
 
 
 @logger_wraps()
@@ -28,6 +29,7 @@ def send_greeting(message: Message) -> None:
                             text='*Для быстрого получения результата лучше*'
                                  '* воспользуйтесь кнопкой меню или продолжите*'
                                  '* начатое )*',
+                            reply_markup=menu_button(),
                             parse_mode='Markdown')
 
 

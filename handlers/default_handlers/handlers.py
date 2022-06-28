@@ -8,6 +8,7 @@ from classes.calendar import DetailedTelegramCalendar, MyTranslationCalendar
 from utils.misc.answers.callbacks import callbacks
 from logger.logger import logger_wraps, logger
 import database.database_methods as database
+from telebot.apihelper import ApiTelegramException
 
 
 
@@ -15,13 +16,17 @@ import database.database_methods as database
 @my_bot.message_handler(commands=['start'])
 def send_basic_greeting(message: Message) -> None:
     """Turns on the bot, calls its basic greeting, displays menu button
-    and adds the user to the log file
+    and adds the user to the log file. The username is assigned to a special attribute
+    of the user data class, for subsequent correct recording of information to the log
 
     :param message: argument
     :type message: Message object
     :return: None"""
 
-    logger.info(f'К нам присоединился {message.from_user.first_name}')
+    current_user = UserData.get_user(message.chat.id)
+    current_user.user_name = message.from_user.first_name
+    logger.info(f'{current_user.user_name} joined us')
+
     my_bot.send_message(message.from_user.id,
                         text='*Приветствую {}. Я Hotels_Searcher_bot *'
                              '* и я могу помочь вам найти  лучшие отели*'
@@ -82,6 +87,7 @@ def command_low_price(message: Message):
      :return: None"""
 
     current_user = UserData.get_user(message.chat.id)
+
     handlers.delete_previous_message(message)
     current_user.clear_all()
     current_user.current_command = '/lowprice'
@@ -168,6 +174,7 @@ def send_answer(message: Message) -> None:
     :return: None"""
 
     current_user = UserData.get_user(message.chat.id)
+
     if current_user.zero_condition:
         answers.send_greeting(message)
     elif current_user.first_condition:
@@ -193,25 +200,31 @@ def first_query_handler(call: CallbackQuery) -> None:
     :type call: CallbackQuery object
     :return: None"""
 
-    result, key, step = MyTranslationCalendar(locale='ru').process(call.data)
-    if not result and key:
-        my_bot.edit_message_text(
-            f"Выберите {MyTranslationCalendar.my_LSTEP[step]}",
-            chat_id=call.message.chat.id,
-            message_id=call.message.message_id,
-            reply_markup=key
-        )
-    elif result:
-        current_user = UserData.get_user(call.message.chat.id)
-        current_user.date_buffer = result
-        my_bot.edit_message_text(f"*Вы ввели {result.strftime('%d.%m.%Y')}*",
-                                 chat_id=call.message.chat.id,
-                                 message_id=call.message.message_id,
-                                 parse_mode='Markdown')
-        if current_user.date_flag is False:
-            handlers.check_in(call.message)
-        else:
-            handlers.check_out(call.message)
+    current_user = UserData.get_user(call.message.chat.id)
+
+    try:
+        result, key, step = MyTranslationCalendar(locale='ru').process(call.data)
+        if not result and key:
+            my_bot.edit_message_text(
+                f"Выберите {MyTranslationCalendar.my_LSTEP[step]}",
+                chat_id=call.message.chat.id,
+                message_id=call.message.message_id,
+                reply_markup=key
+            )
+        elif result:
+            logger.info(f'{current_user.user_name} entered {result}')
+            current_user = UserData.get_user(call.message.chat.id)
+            current_user.date_buffer = result
+            my_bot.edit_message_text(f"*Вы ввели {result.strftime('%d.%m.%Y')}*",
+                                     chat_id=call.message.chat.id,
+                                     message_id=call.message.message_id,
+                                     parse_mode='Markdown')
+            if current_user.date_flag is False:
+                handlers.check_in(call.message)
+            else:
+                handlers.check_out(call.message)
+    except ApiTelegramException:
+        logger.exception('Ups... something went wrong')
 
 
 @logger_wraps()

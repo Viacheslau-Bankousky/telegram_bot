@@ -26,7 +26,6 @@ def initial_function(message: Message) -> None:
 
 
     current_user = UserData.get_user(message.chat.id)
-
     database.add_user_to_database(message)
     result = my_bot.send_message(chat_id=message.chat.id,
                                  text='*Теперь выберите город, для поиска отеля  *',
@@ -49,6 +48,7 @@ def determination_city(message: Message) -> None:
 
     current_user = UserData.get_user(message.chat.id)
 
+    logger.info(f'{message.from_user.first_name} looking for hotels in the city - {message.text}')
     if message.text.isalpha() or [letter for letter in message.text
                                   if letter.isspace() or letter.isalpha()]:
         current_user.city = message.text.lower()
@@ -76,6 +76,7 @@ def differance_between_commands(message: Message) -> None:
     :return: None"""
 
     current_user = UserData.get_user(message.chat.id)
+
     current_user.first_condition = False
     current_user.second_condition = True
     if current_user.current_command in ('/lowprice', '/highprice'):
@@ -107,6 +108,7 @@ def minimum_price(message: Message) -> None:
     :return: None"""
 
     current_user = UserData.get_user(message.chat.id)
+    logger.info(f'{message.from_user.first_name} has chosen the minimum price - {message.text}')
 
     if message.text.isdigit():
         if int(message.text) > 0:
@@ -144,6 +146,7 @@ def maximum_price(message: Message) -> None:
     :return: None"""
 
     current_user = UserData.get_user(message.chat.id)
+    logger.info(f'{message.from_user.first_name} has chosen the maximum price - {message.text}')
 
     if message.text.isdigit():
         if 0 < int(message.text) > current_user.minimum_price:
@@ -183,6 +186,8 @@ def minimum_distance(message: Message) -> None:
     :return: None"""
 
     current_user = UserData.get_user(message.chat.id)
+    logger.info(f'{message.from_user.first_name} has chosen the minimum distance - {message.text}')
+
     try:
         if message.text.isdigit():
             if int(message.text) > 0:
@@ -223,6 +228,7 @@ def maximum_distance(message: Message) -> None:
     :return: None"""
 
     current_user = UserData.get_user(message.chat.id)
+    logger.info(f'{message.from_user.first_name} has chosen the maximum distance - {message.text}')
 
     if message.text.isdigit():
         if 0 < int(message.text) > current_user.minimum_distance:
@@ -261,6 +267,7 @@ def hotels_count(message: Message) -> None:
     :return: None"""
 
     current_user = UserData.get_user(message.chat.id)
+    logger.info(f'{message.from_user.first_name} has chosen to view {message.text} hotels')
 
     if message.text.isdigit():
         if 0 < int(message.text) < 6:
@@ -303,6 +310,8 @@ def adults_count(message: Message) -> None:
     :return: None"""
 
     current_user = UserData.get_user(message.chat.id)
+    logger.info(f'{message.from_user.first_name} has selected {message.text} users to check in')
+
     if message.text.isdigit():
         if 0 < int(message.text) < 20:
             current_user.adults_count = message.text
@@ -450,6 +459,8 @@ def yes_answer_about_photo(message: Message) -> None:
     :return: None"""
 
     current_user = UserData.get_user(message.chat.id)
+    logger.info(f'{current_user.user_name} will view the photo')
+
     delete_previous_message(message)
     result = my_bot.send_message(chat_id=message.chat.id,
                                  text='*Какое количество фотографий *'
@@ -469,6 +480,7 @@ def no_answer_about_photo(message: Message) -> None:
     :type message: Message object
     :return: None"""
 
+    logger.info(f'{message.from_user.first_name} will not view the photo')
     delete_previous_message(message)
     my_bot.send_message(chat_id=message.chat.id,
                         text='*Значит будем без фотографий) *',
@@ -488,6 +500,7 @@ def photo_count(message: Message) -> None:
     :return: None"""
 
     current_user = UserData.get_user(message.chat.id)
+    logger.info(f'{message.from_user.first_name} has selected {message.text} photos to view')
 
     if message.text.isdigit():
         if 0 < int(message.text) < 11:
@@ -538,7 +551,7 @@ def check_condition_for_two_commands(message: Message) -> None:
     with variants of found cities,  question about viewing photos, the  calendar
     or suggestion to continue or end the search (in the end of the script),
     and then displays them again below the entered message (necessary for
-    the /help and /hello-world command entered in the corresponding state
+    the /help and /hello-world command is entered in the corresponding state
     of the bot)
 
     :param message: argument

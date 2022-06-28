@@ -23,6 +23,7 @@ def commands_keyboard(message: Message) -> None:
     :return: None"""
 
     current_user = UserData.get_user(message.chat.id)
+
     keyboard = InlineKeyboardMarkup().add(
         InlineKeyboardButton(
             text=emoji.emojize('LOWPRICE  :money-mouth_face:'),
@@ -46,7 +47,6 @@ def commands_keyboard(message: Message) -> None:
              '*Для отображения истории поиска выберите "history"*',
         reply_markup=keyboard, parse_mode='Markdown'
     )
-
     handlers.delete_previous_message(message)
     current_user.id_message_for_delete = result.message_id
     current_user.delete_message = True

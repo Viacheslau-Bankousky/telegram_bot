@@ -5,7 +5,7 @@ import handlers.handlers_before_request.handlers as handlers
 import handlers.default_handlers.handlers as commands
 import keyboards.inline.inline_keyboards as inline_keyboard
 from handlers.handlers_for_request_and_after.rapidapi import delete_showed_hotels
-from logger.logger import logger_wraps
+from logger.logger import logger_wraps, logger
 
 
 @logger_wraps()
@@ -118,7 +118,8 @@ def new_hotels(message: Message, callback_id: int,
     """Answering the callback after pressing the 'new hotels' button, after the first
      display of the specified number of hotels, displays the data of the pressed
      button, deletes the previous inline keyboard and calling the corresponding
-    function that removes the shown hotels (from handlers_for_request_and_after.rapidapi)
+    function that removes the shown hotels (from handlers_for_request_and_after.rapidapi).
+    Information about the result is added to the log
 
     :param message: argument
     :type message: Message object
@@ -127,6 +128,7 @@ def new_hotels(message: Message, callback_id: int,
     :param callback_id: id of callback  pressed button
     :type callback_id: integer
     :return: None"""
+
 
     my_bot.answer_callback_query(callback_query_id=callback_id)
     my_bot.send_message(chat_id=message.chat.id, text=callback_data)
@@ -139,7 +141,7 @@ def new_search(message: Message, callback_id: int,
                callback_data: str) -> None:
     """Answering the callback after pressing the 'new search' button, after the first
     display of the specified number of hotels, displays the data of the pressed
-    button and calling list of available commands
+    button and calling list of available commands. Information about the result is added to the log
 
     :param message: argument
     :type message: Message object
@@ -148,7 +150,6 @@ def new_search(message: Message, callback_id: int,
     :param callback_id: id of callback  pressed button
     :type callback_id: integer
     :return: None"""
-
     my_bot.answer_callback_query(callback_query_id=callback_id)
     my_bot.send_message(chat_id=message.chat.id, text=callback_data)
     inline_keyboard.commands_keyboard(message)
@@ -161,7 +162,7 @@ def end_search(message: Message, callback_id: int,
     displaying of the specified number of hotels, displays the data of the pressed
     button, deletes the previous inline keyboard  and sends farewell message.
     At the end, all dynamic attributes of the user class are returned to the
-    default value
+    default value. Information about the result is added to the log
 
     :param message: argument
     :type message: Message object
@@ -205,6 +206,8 @@ def show_hotels(message: Message, callback_id: int,
                 my_bot.answer_callback_query(callback_query_id=callback_id)
                 my_bot.send_message(chat_id=message.chat.id,
                                     text=f'Хорошо, я запомню ваш выбор: {key}')
+                logger.info(f'{current_user.user_name} has selected {key}')
+
                 current_user.destination_id = value
                 handlers.delete_previous_message(message)
                 handlers.differance_between_commands(message)

@@ -37,8 +37,6 @@ def add_user_to_database(message: Message) -> None:
 def add_results_to_database(message: Message, result: str) -> None:
     """Adds the result of the entered command to the database
 
-    :param message: argument
-    :type message: Message object
     :param: result: the result of the entered command (one of the found hotels)
     :type: result: string
     :return: None

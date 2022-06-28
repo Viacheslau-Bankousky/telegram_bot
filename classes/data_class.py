@@ -6,6 +6,8 @@ class UserData:
     """Class for recording temporary data during execution
     script and quick access to it
 
+    :param: user_name: users first name, which has set by him earlier 
+    :type: user_name: string
     :param: current_command: the command, that the user entered
     :type: current_command: string
     :param: city:  the city selected by the user
@@ -106,6 +108,7 @@ class UserData:
     all_users: dict = dict()
 
     def __init__(self):
+        self.user_name: str is None
         self.current_command: str is None
         self.city: str is None
         self.hotels_count: int is None
@@ -157,11 +160,14 @@ class UserData:
 
     def clear_all(self):
         """Updates the values of all dynamic attributes of the user data-class object
-    and sets the value to None or bool"""
+    and sets the value to None or bool (the value of user_name remains unchanged, for the subsequent
+    correct operation of the bot)"""
 
         for i_elem in self.__dict__:
             if i_elem == 'date_flag':
                 self.__dict__[i_elem] = False
+            elif i_elem == 'user_name':
+                self.__dict__[i_elem] = self.__dict__[i_elem]
             elif i_elem == 'zero_condition':
                 self.__dict__[i_elem] = True
             elif i_elem == 'first_condition':
